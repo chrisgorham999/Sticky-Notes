@@ -136,15 +136,17 @@ const firebaseConfig = {
                 if (currentUser && auth.currentUser && db) {
                     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
 
+                    // Immediately block incoming updates while we have pending changes
+                    isSavingRef.current = true;
+
                     const timeout = setTimeout(() => {
-                        isSavingRef.current = true;
                         setSyncStatus('syncing');
                         db.collection('users').doc(auth.currentUser.uid).set({
                             notes, colorLabels, nextId, collapsedCategories, darkMode, finnhubApiKey, watchList,
                             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                         }).then(() => {
                             setSyncStatus('synced');
-                            isSavingRef.current = false;
+                            setTimeout(() => { isSavingRef.current = false; }, 1000);
                         }).catch(() => {
                             setSyncStatus('offline');
                             isSavingRef.current = false;
