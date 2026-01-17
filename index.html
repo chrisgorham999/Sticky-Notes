@@ -246,24 +246,48 @@ const firebaseConfig = {
 
                     try {
                         const proxyUrl = 'https://api.allorigins.win/raw?url=';
-                        const targetUrl = encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${expandedNote.title}?interval=1d&range=1d`);
-                        const response = await fetch(proxyUrl + targetUrl);
 
-                        if (!response.ok) {
-                            throw new Error('Failed to fetch');
+                        // Fetch price data
+                        const chartUrl = encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${expandedNote.title}?interval=1d&range=1d`);
+                        const chartResponse = await fetch(proxyUrl + chartUrl);
+
+                        if (!chartResponse.ok) {
+                            throw new Error('Failed to fetch chart data');
                         }
 
-                        const data = await response.json();
+                        const chartData = await chartResponse.json();
 
-                        if (data.chart.error || !data.chart.result || data.chart.result.length === 0) {
+                        if (chartData.chart.error || !chartData.chart.result || chartData.chart.result.length === 0) {
                             if (isMounted) {
                                 setStockError('Stock not found');
                                 setStockData(null);
                             }
                         } else {
-                            const result = data.chart.result[0];
+                            const result = chartData.chart.result[0];
                             const quote = result.indicators.quote[0];
                             const meta = result.meta;
+
+                            // Fetch fundamental data (P/E, P/B, Dividend)
+                            const quoteSummaryUrl = encodeURIComponent(`https://query1.finance.yahoo.com/v10/finance/quoteSummary/${expandedNote.title}?modules=summaryDetail,defaultKeyStatistics`);
+                            let fundamentals = {};
+
+                            try {
+                                const fundamentalsResponse = await fetch(proxyUrl + quoteSummaryUrl);
+                                if (fundamentalsResponse.ok) {
+                                    const fundamentalsData = await fundamentalsResponse.json();
+                                    const summaryDetail = fundamentalsData.quoteSummary?.result?.[0]?.summaryDetail;
+                                    const keyStats = fundamentalsData.quoteSummary?.result?.[0]?.defaultKeyStatistics;
+
+                                    fundamentals = {
+                                        peRatio: summaryDetail?.trailingPE?.raw || keyStats?.trailingPE?.raw,
+                                        pbRatio: keyStats?.priceToBook?.raw,
+                                        dividendYield: summaryDetail?.dividendYield?.raw,
+                                        dividendRate: summaryDetail?.dividendRate?.raw
+                                    };
+                                }
+                            } catch (err) {
+                                console.log('Could not fetch fundamentals:', err);
+                            }
 
                             if (isMounted) {
                                 setStockData({
@@ -276,7 +300,11 @@ const firebaseConfig = {
                                     dayLow: quote.low?.[0] || meta.regularMarketDayLow,
                                     volume: quote.volume?.[0] || meta.regularMarketVolume,
                                     marketCap: meta.marketCap,
-                                    currency: meta.currency
+                                    currency: meta.currency,
+                                    peRatio: fundamentals.peRatio,
+                                    pbRatio: fundamentals.pbRatio,
+                                    dividendYield: fundamentals.dividendYield,
+                                    dividendRate: fundamentals.dividendRate
                                 });
                             }
                         }
@@ -411,6 +439,49 @@ const firebaseConfig = {
                                                             <p className="text-xl font-semibold text-gray-900">
                                                                 {stockData.currency === 'USD' ? '$' : ''}{(stockData.marketCap / 1e9).toFixed(2)}B
                                                             </p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-white rounded-lg p-6 shadow">
+                                                <h4 className="text-lg font-semibold text-gray-700 mb-4">Fundamentals</h4>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    {stockData.peRatio && (
+                                                        <div>
+                                                            <p className="text-sm text-gray-500">P/E Ratio</p>
+                                                            <p className="text-xl font-semibold text-gray-900">
+                                                                {stockData.peRatio.toFixed(2)}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    {stockData.pbRatio && (
+                                                        <div>
+                                                            <p className="text-sm text-gray-500">P/B Ratio</p>
+                                                            <p className="text-xl font-semibold text-gray-900">
+                                                                {stockData.pbRatio.toFixed(2)}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    {stockData.dividendYield && (
+                                                        <div>
+                                                            <p className="text-sm text-gray-500">Dividend Yield</p>
+                                                            <p className="text-xl font-semibold text-gray-900">
+                                                                {(stockData.dividendYield * 100).toFixed(2)}%
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    {stockData.dividendRate && (
+                                                        <div>
+                                                            <p className="text-sm text-gray-500">Annual Dividend</p>
+                                                            <p className="text-xl font-semibold text-gray-900">
+                                                                {stockData.currency === 'USD' ? '$' : ''}{stockData.dividendRate.toFixed(2)}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    {!stockData.peRatio && !stockData.pbRatio && !stockData.dividendYield && !stockData.dividendRate && (
+                                                        <div className="col-span-2 text-center text-gray-500">
+                                                            <p className="text-sm">Fundamental data not available</p>
                                                         </div>
                                                     )}
                                                 </div>
