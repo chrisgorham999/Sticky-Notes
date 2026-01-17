@@ -281,6 +281,13 @@ const firebaseConfig = {
                         const metricsResponse = await fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${expandedNote.title}&metric=all&token=${finnhubApiKey}`);
                         const metricsData = metricsResponse.ok ? await metricsResponse.json() : {};
 
+                        // Fetch earnings calendar for next earnings date
+                        const today = new Date();
+                        const fromDate = today.toISOString().split('T')[0];
+                        const toDate = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 90 days ahead
+                        const earningsResponse = await fetch(`https://finnhub.io/api/v1/calendar/earnings?from=${fromDate}&to=${toDate}&symbol=${expandedNote.title}&token=${finnhubApiKey}`);
+                        const earningsData = earningsResponse.ok ? await earningsResponse.json() : {};
+
                         if (isMounted) {
                             const currentPrice = quoteData.c;
                             const previousClose = quoteData.pc;
@@ -301,7 +308,10 @@ const firebaseConfig = {
                                 peRatio: metricsData.metric?.peBasicExclExtraTTM || metricsData.metric?.peNormalizedAnnual,
                                 pbRatio: metricsData.metric?.pbAnnual || metricsData.metric?.pbQuarterly,
                                 dividendYield: metricsData.metric?.dividendYieldIndicatedAnnual ? metricsData.metric.dividendYieldIndicatedAnnual / 100 : null,
-                                dividendRate: metricsData.metric?.dividendPerShareAnnual
+                                dividendRate: metricsData.metric?.dividendPerShareAnnual,
+                                week52High: metricsData.metric?.['52WeekHigh'],
+                                week52Low: metricsData.metric?.['52WeekLow'],
+                                nextEarningsDate: earningsData.earningsCalendar && earningsData.earningsCalendar.length > 0 ? earningsData.earningsCalendar[0].date : null
                             });
                         }
                     } catch (error) {
@@ -411,6 +421,14 @@ const firebaseConfig = {
                                                             {stockData.currency === 'USD' ? '$' : ''}{stockData.previousClose?.toFixed(2)}
                                                         </p>
                                                     </div>
+                                                    {stockData.marketCap && (
+                                                        <div>
+                                                            <p className="text-sm text-gray-500">Market Cap</p>
+                                                            <p className="text-xl font-semibold text-gray-900">
+                                                                {stockData.currency === 'USD' ? '$' : ''}{(stockData.marketCap / 1e9).toFixed(2)}B
+                                                            </p>
+                                                        </div>
+                                                    )}
                                                     <div>
                                                         <p className="text-sm text-gray-500">Day High</p>
                                                         <p className="text-xl font-semibold text-gray-900">
@@ -423,6 +441,22 @@ const firebaseConfig = {
                                                             {stockData.currency === 'USD' ? '$' : ''}{stockData.dayLow?.toFixed(2)}
                                                         </p>
                                                     </div>
+                                                    {stockData.week52High && (
+                                                        <div>
+                                                            <p className="text-sm text-gray-500">52W High</p>
+                                                            <p className="text-xl font-semibold text-gray-900">
+                                                                {stockData.currency === 'USD' ? '$' : ''}{stockData.week52High?.toFixed(2)}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    {stockData.week52Low && (
+                                                        <div>
+                                                            <p className="text-sm text-gray-500">52W Low</p>
+                                                            <p className="text-xl font-semibold text-gray-900">
+                                                                {stockData.currency === 'USD' ? '$' : ''}{stockData.week52Low?.toFixed(2)}
+                                                            </p>
+                                                        </div>
+                                                    )}
                                                     {stockData.volume && (
                                                         <div>
                                                             <p className="text-sm text-gray-500">Volume</p>
@@ -431,11 +465,11 @@ const firebaseConfig = {
                                                             </p>
                                                         </div>
                                                     )}
-                                                    {stockData.marketCap && (
+                                                    {stockData.nextEarningsDate && (
                                                         <div className="col-span-2">
-                                                            <p className="text-sm text-gray-500">Market Cap</p>
+                                                            <p className="text-sm text-gray-500">Next Earnings Date</p>
                                                             <p className="text-xl font-semibold text-gray-900">
-                                                                {stockData.currency === 'USD' ? '$' : ''}{(stockData.marketCap / 1e9).toFixed(2)}B
+                                                                {new Date(stockData.nextEarningsDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                                                             </p>
                                                         </div>
                                                     )}
