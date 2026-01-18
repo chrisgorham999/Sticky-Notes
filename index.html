@@ -65,6 +65,8 @@ const firebaseConfig = {
         const Cloud = ({ size = 24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>;
         const CloudOff = ({ size = 24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22.61 16.95A5 5 0 0 0 18 10h-1.26a8 8 0 0 0-7.05-6M5 5a8 8 0 0 0 4 15h9a5 5 0 0 0 1.7-.3"/><line x1="1" y1="1" x2="23" y2="23"/></svg>;
         const Maximize = ({ size = 24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>;
+        const Eye = ({ size = 24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
+        const EyeOff = ({ size = 24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>;
 
         const DEFAULT_COLOR_LABELS = {
             'bg-yellow-200': 'Ideas',
@@ -104,6 +106,7 @@ const firebaseConfig = {
             const [showApiKeySuccess, setShowApiKeySuccess] = useState(false);
             const [watchList, setWatchList] = useState([]);
             const [newWatchTicker, setNewWatchTicker] = useState('');
+            const [hideEmail, setHideEmail] = useState(false);
 
             useEffect(() => {
                 if (!auth) return;
@@ -584,7 +587,12 @@ const firebaseConfig = {
                                     {syncStatus === 'synced' && <span className="text-sm text-green-500 flex items-center gap-1"><Cloud size={16}/> Synced</span>}
                                     {syncStatus === 'offline' && <span className="text-sm text-red-500 flex items-center gap-1"><CloudOff size={16}/> Offline</span>}
                                 </div>
-                                <p className={`text-sm mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Welcome, {currentUser}!</p>
+                                <p className={`text-sm mt-1 flex items-center gap-1 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                                    Welcome, {hideEmail ? '•••••@•••••' : currentUser}!
+                                    <button onClick={() => setHideEmail(!hideEmail)} className="ml-1 opacity-60 hover:opacity-100">
+                                        {hideEmail ? <Eye size={14}/> : <EyeOff size={14}/>}
+                                    </button>
+                                </p>
                             </div>
                             <div className="flex gap-3 items-center">
                                 <button onClick={() => { setNotes([{id: nextId, title: '', text: '', color: UNCLASSIFIED_COLOR, classified: false}, ...notes]); setNextId(nextId + 1); }} className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg"><Plus size={20}/>New Note</button>
