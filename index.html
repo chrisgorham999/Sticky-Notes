@@ -552,24 +552,37 @@ const firebaseConfig = {
                 chartInstance.current = new Chart(chartRef.current, {
                     type: 'doughnut',
                     data: {
-                        labels: portfolioData.map(h => h.ticker),
+                        labels: portfolioData.map(h => `${h.ticker} - ${h.percentage.toFixed(1)}% - $${h.value.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`),
                         datasets: [{
                             data: portfolioData.map(h => h.value),
                             backgroundColor: colors.slice(0, portfolioData.length),
-                            borderWidth: 2,
+                            borderWidth: 3,
                             borderColor: darkMode ? '#1f2937' : '#ffffff'
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        layout: {
+                            padding: 20
+                        },
                         plugins: {
-                            legend: { display: false },
+                            legend: {
+                                display: true,
+                                position: 'right',
+                                labels: {
+                                    color: darkMode ? '#e5e7eb' : '#374151',
+                                    font: { size: 13, weight: 'bold' },
+                                    padding: 15,
+                                    usePointStyle: true,
+                                    pointStyle: 'circle'
+                                }
+                            },
                             tooltip: {
                                 callbacks: {
                                     label: (ctx) => {
                                         const h = portfolioData[ctx.dataIndex];
-                                        return `${h.ticker}: ${h.shares} shares | $${h.value.toFixed(2)} (${h.percentage.toFixed(1)}%)`;
+                                        return `${h.ticker}: ${h.shares} shares @ $${h.price.toFixed(2)} = $${h.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${h.percentage.toFixed(1)}%)`;
                                     }
                                 }
                             }
@@ -1238,43 +1251,34 @@ const firebaseConfig = {
                                     </p>
                                 </div>
                             ) : (
-                                <div className="flex gap-6">
-                                    {/* Pie Chart */}
-                                    <div className={`rounded-lg shadow-lg p-6 ${darkMode ? 'bg-gray-800' : 'bg-white'}`} style={{width: '400px', height: '400px'}}>
-                                        <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>Allocation</h3>
-                                        <div style={{height: '320px'}}>
+                                <div className="flex flex-col gap-6">
+                                    {/* Pie Chart - Large */}
+                                    <div className={`rounded-lg shadow-lg p-6 ${darkMode ? 'bg-gray-800' : 'bg-white'}`} style={{height: '500px'}}>
+                                        <h3 className={`text-xl font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>Portfolio Allocation</h3>
+                                        <div style={{height: '420px'}}>
                                             <canvas ref={chartRef}></canvas>
                                         </div>
                                     </div>
 
-                                    {/* Holdings List */}
-                                    <div className={`flex-1 rounded-lg shadow-lg p-6 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-                                        <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'}`}>Holdings</h3>
+                                    {/* Holdings List - Compact */}
+                                    <div className={`rounded-lg shadow-lg p-4 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+                                        <h3 className={`text-lg font-semibold mb-3 ${darkMode ? 'text-white' : 'text-gray-800'}`}>Holdings Details</h3>
                                         {portfolioLoading ? (
-                                            <p className={`text-center py-8 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Loading prices...</p>
+                                            <p className={`text-center py-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Loading prices...</p>
                                         ) : (
-                                            <div className="space-y-3">
+                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                                                 {portfolioData.map((h, i) => (
-                                                    <div key={h.ticker} className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                                                        <div className="flex justify-between items-start">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="w-4 h-4 rounded-full" style={{backgroundColor: ['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#06B6D4','#84CC16','#F97316','#6366F1'][i % 10]}}/>
-                                                                <div>
-                                                                    <span className={`font-bold text-lg ${darkMode ? 'text-white' : 'text-gray-800'}`}>{h.ticker}</span>
-                                                                    <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                                                                        {h.shares} shares @ ${h.price.toFixed(2)}
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-right">
-                                                                <p className={`font-bold text-lg ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                                                                    ${h.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                                                                </p>
-                                                                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                                                                    {h.percentage.toFixed(1)}%
-                                                                </p>
-                                                            </div>
+                                                    <div key={h.ticker} className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{backgroundColor: ['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#06B6D4','#84CC16','#F97316','#6366F1'][i % 10]}}/>
+                                                            <span className={`font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{h.ticker}</span>
                                                         </div>
+                                                        <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                                            {h.shares} @ ${h.price.toFixed(2)}
+                                                        </p>
+                                                        <p className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                                                            ${h.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                                        </p>
                                                     </div>
                                                 ))}
                                             </div>
