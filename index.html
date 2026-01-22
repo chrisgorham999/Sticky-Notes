@@ -228,7 +228,8 @@ const firebaseConfig = {
 
         // Decrypt API key after loading from Firestore
         const decryptApiKey = async (encryptedData, userId) => {
-            if (!encryptedData || !userId) return '';
+            if (!encryptedData) return '';
+            if (!userId) return '';
             
             // Handle legacy unencrypted keys (for migration)
             if (typeof encryptedData === 'string') {
@@ -236,6 +237,10 @@ const firebaseConfig = {
             }
             
             // Handle encrypted keys
+            if (!encryptedData || typeof encryptedData !== 'object') {
+                return '';
+            }
+            
             if (!encryptedData.encrypted || !encryptedData.iv) {
                 return '';
             }
@@ -263,6 +268,10 @@ const firebaseConfig = {
                 return decoder.decode(decrypted);
             } catch (error) {
                 console.error('Decryption error:', error);
+                // If decryption fails, try to return as string (might be legacy format)
+                if (typeof encryptedData === 'string') {
+                    return encryptedData;
+                }
                 return '';
             }
         };
@@ -336,20 +345,37 @@ const firebaseConfig = {
                     .onSnapshot(async (doc) => {
                         if (doc.exists && !isSavingRef.current) {
                             const data = doc.data();
+                            
+                            // Load non-API key data immediately (don't wait for decryption)
                             setNotes(data.notes || []);
                             setColorLabels(data.colorLabels || DEFAULT_COLOR_LABELS);
                             setNextId(data.nextId || 1);
                             setCollapsedCategories(data.collapsedCategories || {});
                             setDarkMode(data.darkMode || false);
-                            
-                            // Decrypt API keys when loading from Firestore
-                            const decryptedFinnhub = await decryptApiKey(data.finnhubApiKey, userId);
-                            const decryptedMarketaux = await decryptApiKey(data.marketauxApiKey, userId);
-                            setFinnhubApiKey(decryptedFinnhub || '');
-                            setMarketauxApiKey(decryptedMarketaux || '');
-                            
                             setWatchList(data.watchList || []);
                             setNickname(data.nickname || '');
+                            
+                            // Decrypt API keys asynchronously (non-blocking)
+                            // This prevents slow login if decryption takes time
+                            decryptApiKey(data.finnhubApiKey, userId).then(decrypted => {
+                                setFinnhubApiKey(decrypted || '');
+                            }).catch(err => {
+                                console.error('Failed to decrypt Finnhub key:', err);
+                                // Fallback: try as plain string
+                                if (typeof data.finnhubApiKey === 'string') {
+                                    setFinnhubApiKey(data.finnhubApiKey);
+                                }
+                            });
+                            
+                            decryptApiKey(data.marketauxApiKey, userId).then(decrypted => {
+                                setMarketauxApiKey(decrypted || '');
+                            }).catch(err => {
+                                console.error('Failed to decrypt MarketAux key:', err);
+                                // Fallback: try as plain string
+                                if (typeof data.marketauxApiKey === 'string') {
+                                    setMarketauxApiKey(data.marketauxApiKey);
+                                }
+                            });
                         }
                     });
                 return () => unsubscribe();
@@ -366,26 +392,39 @@ const firebaseConfig = {
                         setSyncStatus('syncing');
                         const userId = auth.currentUser.uid;
                         
-                        // Encrypt API keys before storing
-                        const encryptedFinnhub = finnhubApiKey 
-                            ? await encryptApiKey(finnhubApiKey, userId) 
-                            : null;
-                        const encryptedMarketaux = marketauxApiKey 
-                            ? await encryptApiKey(marketauxApiKey, userId) 
-                            : null;
-                        
-                        db.collection('users').doc(userId).set({
+                        // Only encrypt if we have API keys and encryption succeeds
+                        // Use update with merge to preserve existing encrypted data if encryption fails
+                        const updateData = {
                             notes, 
                             colorLabels, 
                             nextId, 
                             collapsedCategories, 
                             darkMode, 
-                            finnhubApiKey: encryptedFinnhub, 
-                            marketauxApiKey: encryptedMarketaux, 
                             watchList, 
                             nickname,
                             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                        }).then(() => {
+                        };
+                        
+                        // Encrypt API keys before storing (only if they exist and encryption succeeds)
+                        if (finnhubApiKey) {
+                            const encrypted = await encryptApiKey(finnhubApiKey, userId);
+                            if (encrypted) {
+                                updateData.finnhubApiKey = encrypted;
+                            }
+                        } else {
+                            updateData.finnhubApiKey = null; // Clear if empty
+                        }
+                        
+                        if (marketauxApiKey) {
+                            const encrypted = await encryptApiKey(marketauxApiKey, userId);
+                            if (encrypted) {
+                                updateData.marketauxApiKey = encrypted;
+                            }
+                        } else {
+                            updateData.marketauxApiKey = null; // Clear if empty
+                        }
+                        
+                        db.collection('users').doc(userId).set(updateData, { merge: false }).then(() => {
                             setSyncStatus('synced');
                             setTimeout(() => { isSavingRef.current = false; }, 1000);
                         }).catch(() => {
@@ -406,26 +445,33 @@ const firebaseConfig = {
                     if (currentUser && auth.currentUser && db) {
                         const userId = auth.currentUser.uid;
                         
-                        // Encrypt API keys before storing
-                        const encryptedFinnhub = finnhubApiKey 
-                            ? await encryptApiKey(finnhubApiKey, userId) 
-                            : null;
-                        const encryptedMarketaux = marketauxApiKey 
-                            ? await encryptApiKey(marketauxApiKey, userId) 
-                            : null;
-                        
-                        db.collection('users').doc(userId).set({
+                        const updateData = {
                             notes, 
                             colorLabels, 
                             nextId, 
                             collapsedCategories, 
                             darkMode, 
-                            finnhubApiKey: encryptedFinnhub, 
-                            marketauxApiKey: encryptedMarketaux, 
                             watchList, 
                             nickname,
                             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
+                        };
+                        
+                        // Only encrypt if we have API keys and encryption succeeds
+                        if (finnhubApiKey) {
+                            const encrypted = await encryptApiKey(finnhubApiKey, userId);
+                            if (encrypted) {
+                                updateData.finnhubApiKey = encrypted;
+                            }
+                        }
+                        
+                        if (marketauxApiKey) {
+                            const encrypted = await encryptApiKey(marketauxApiKey, userId);
+                            if (encrypted) {
+                                updateData.marketauxApiKey = encrypted;
+                            }
+                        }
+                        
+                        db.collection('users').doc(userId).set(updateData, { merge: false });
                     }
                 };
 
@@ -473,26 +519,33 @@ const firebaseConfig = {
                 if (currentUser && auth.currentUser && db) {
                     const userId = auth.currentUser.uid;
                     
-                    // Encrypt API keys before storing
-                    const encryptedFinnhub = finnhubApiKey 
-                        ? await encryptApiKey(finnhubApiKey, userId) 
-                        : null;
-                    const encryptedMarketaux = marketauxApiKey 
-                        ? await encryptApiKey(marketauxApiKey, userId) 
-                        : null;
-                    
-                    db.collection('users').doc(userId).set({
+                    const updateData = {
                         notes, 
                         colorLabels, 
                         nextId, 
                         collapsedCategories, 
                         darkMode, 
-                        finnhubApiKey: encryptedFinnhub, 
-                        marketauxApiKey: encryptedMarketaux, 
                         watchList, 
                         nickname,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    };
+                    
+                    // Only encrypt if we have API keys and encryption succeeds
+                    if (finnhubApiKey) {
+                        const encrypted = await encryptApiKey(finnhubApiKey, userId);
+                        if (encrypted) {
+                            updateData.finnhubApiKey = encrypted;
+                        }
+                    }
+                    
+                    if (marketauxApiKey) {
+                        const encrypted = await encryptApiKey(marketauxApiKey, userId);
+                        if (encrypted) {
+                            updateData.marketauxApiKey = encrypted;
+                        }
+                    }
+                    
+                    db.collection('users').doc(userId).set(updateData, { merge: false });
                 }
             };
 
