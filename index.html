@@ -699,13 +699,23 @@ const firebaseConfig = {
                 setReassignTarget(null);
             };
 
+            // Ref to track intentional color changes (prevents orphan repair race condition)
+            const isChangingColorRef = useRef(false);
+
             const changeCategoryColor = (oldColor, newColor) => {
                 if (oldColor === newColor) return;
                 if (categories.includes(newColor)) return;
+
+                // Mark that we're intentionally changing colors
+                isChangingColorRef.current = true;
+
+                // Update notes FIRST, then categories (order matters for orphan detection)
+                const updatedNotes = notes.map(n => n.color === oldColor ? {...n, color: newColor} : n);
+                setNotes(updatedNotes);
+
                 // Update categories array
                 setCategories(categories.map(c => c === oldColor ? newColor : c));
-                // Update notes with old color to new color
-                setNotes(notes.map(n => n.color === oldColor ? {...n, color: newColor} : n));
+
                 // Update colorLabels
                 const label = colorLabels[oldColor];
                 const newLabels = {...colorLabels};
@@ -713,6 +723,9 @@ const firebaseConfig = {
                 newLabels[newColor] = label;
                 setColorLabels(newLabels);
                 setEditingCategoryColor(null);
+
+                // Reset flag after a short delay to allow state to settle
+                setTimeout(() => { isChangingColorRef.current = false; }, 100);
             };
 
             // Close color picker when clicking outside
@@ -733,6 +746,9 @@ const firebaseConfig = {
 
             // Detect orphaned notes (notes with colors not in categories) and auto-repair them
             useEffect(() => {
+                // Skip if we're in the middle of an intentional color change
+                if (isChangingColorRef.current) return;
+
                 const orphanedNotes = classifiedNotes.filter(n => !categories.includes(n.color));
                 if (orphanedNotes.length > 0 && categories.length > 0) {
                     console.log('Repairing orphaned notes:', orphanedNotes.length);
