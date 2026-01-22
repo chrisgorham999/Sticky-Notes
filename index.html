@@ -1249,9 +1249,28 @@ const firebaseConfig = {
 
             if (!currentUser) {
                 return (
-                    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center p-4">
+                    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center p-4">
                         <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
-                            <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Stock Stickies</h1>
+                            <div className="flex items-center justify-center gap-3 mb-6">
+                                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="2" y="2" width="44" height="44" rx="4" fill="#0f0f23" stroke="#ff006e" strokeWidth="2"/>
+                                    <path d="M8 32 L16 20 L22 26 L32 12 L40 18" stroke="#ff006e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                                    <circle cx="16" cy="20" r="3" fill="#ff006e"/>
+                                    <circle cx="32" cy="12" r="3" fill="#ff006e"/>
+                                    <rect x="6" y="36" width="8" height="6" fill="#ff006e" opacity="0.7"/>
+                                    <rect x="16" y="33" width="8" height="9" fill="#ff006e" opacity="0.8"/>
+                                    <rect x="26" y="30" width="8" height="12" fill="#ff006e" opacity="0.9"/>
+                                    <rect x="36" y="34" width="6" height="8" fill="#ff006e" opacity="0.6"/>
+                                </svg>
+                                <div className="flex flex-col">
+                                    <span className="text-3xl font-black tracking-tight" style={{fontFamily: 'monospace', color: '#00ff41'}}>
+                                        STOCK
+                                    </span>
+                                    <span className="text-xl font-bold tracking-widest -mt-1 text-purple-600" style={{fontFamily: 'monospace'}}>
+                                        STICKIES
+                                    </span>
+                                </div>
+                            </div>
                             {!auth && <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded mb-4 text-sm"><strong>Setup Required:</strong> Add Firebase credentials</div>}
                             <form onSubmit={handleLogin} className="space-y-4">
                                 <div><label className="block text-sm font-medium text-gray-700 mb-2">Email</label><input type="email" value={loginUsername} onChange={(e) => setLoginUsername(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Enter email"/></div>
