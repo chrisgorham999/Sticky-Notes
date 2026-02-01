@@ -676,18 +676,18 @@ const firebaseConfig = {
                     const rect = card.getBoundingClientRect();
                     const clone = card.cloneNode(true);
                     const chartCanvas = chartRef.current;
+                    const chartRect = chartCanvas ? chartCanvas.getBoundingClientRect() : null;
                     const chartDataUrl = chartCanvas ? chartCanvas.toDataURL('image/png') : null;
                     inlineComputedStyles(card, clone);
-                    if (chartDataUrl) {
+                    if (chartDataUrl && chartRect) {
                         const originalCanvas = clone.querySelector('canvas');
                         if (originalCanvas) {
-                            const canvasRect = originalCanvas.getBoundingClientRect();
                             const imageReplacement = document.createElement('img');
                             imageReplacement.src = chartDataUrl;
-                            imageReplacement.width = canvasRect.width;
-                            imageReplacement.height = canvasRect.height;
-                            imageReplacement.style.width = `${canvasRect.width}px`;
-                            imageReplacement.style.height = `${canvasRect.height}px`;
+                            imageReplacement.width = chartRect.width;
+                            imageReplacement.height = chartRect.height;
+                            imageReplacement.style.width = `${chartRect.width}px`;
+                            imageReplacement.style.height = `${chartRect.height}px`;
                             imageReplacement.style.display = 'block';
                             originalCanvas.replaceWith(imageReplacement);
                         }
