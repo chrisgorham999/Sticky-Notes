@@ -334,6 +334,7 @@ const firebaseConfig = {
             const [newsData, setNewsData] = useState(null);
             const [newsLoading, setNewsLoading] = useState(false);
             const [watchListModalTicker, setWatchListModalTicker] = useState(null);
+            const portfolioCardRef = useRef(null);
             // Load cached portfolio prices immediately on init for instant chart display
             const [portfolioPrices, setPortfolioPrices] = useState(() => {
                 try {
@@ -651,15 +652,9 @@ const firebaseConfig = {
             };
 
             const handleDownloadPortfolioSnapshot = async () => {
-                const canvas = chartRef.current;
-                if (!canvas) {
+                const card = portfolioCardRef.current;
+                if (!card) {
                     alert('Portfolio chart is not ready yet. Please try again in a moment.');
-                    return;
-                }
-
-                const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png', 1));
-                if (!blob) {
-                    alert('Unable to create snapshot. Please try again.');
                     return;
                 }
 
@@ -667,6 +662,59 @@ const firebaseConfig = {
                 const suggestedName = `portfolio-${timestamp}.png`;
 
                 try {
+                    const inlineComputedStyles = (source, target) => {
+                        const computed = window.getComputedStyle(source);
+                        const cssText = Array.from(computed)
+                            .map((prop) => `${prop}:${computed.getPropertyValue(prop)};`)
+                            .join('');
+                        target.style.cssText = cssText;
+                        for (let i = 0; i < source.children.length; i++) {
+                            inlineComputedStyles(source.children[i], target.children[i]);
+                        }
+                    };
+
+                    const rect = card.getBoundingClientRect();
+                    const clone = card.cloneNode(true);
+                    inlineComputedStyles(card, clone);
+                    clone.style.margin = '0';
+
+                    const container = document.createElement('div');
+                    container.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+                    container.style.width = `${rect.width}px`;
+                    container.style.height = `${rect.height}px`;
+                    container.appendChild(clone);
+
+                    const svg = `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="${rect.width}" height="${rect.height}">
+                            <foreignObject width="100%" height="100%">${new XMLSerializer().serializeToString(container)}</foreignObject>
+                        </svg>
+                    `;
+                    const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+                    const svgUrl = URL.createObjectURL(svgBlob);
+
+                    const image = new Image();
+                    const blob = await new Promise((resolve, reject) => {
+                        image.onload = () => {
+                            const dpr = window.devicePixelRatio || 1;
+                            const outputCanvas = document.createElement('canvas');
+                            outputCanvas.width = rect.width * dpr;
+                            outputCanvas.height = rect.height * dpr;
+                            const ctx = outputCanvas.getContext('2d');
+                            ctx.scale(dpr, dpr);
+                            ctx.drawImage(image, 0, 0);
+                            outputCanvas.toBlob((result) => {
+                                if (result) resolve(result);
+                                else reject(new Error('Unable to create snapshot.'));
+                            }, 'image/png', 1);
+                            URL.revokeObjectURL(svgUrl);
+                        };
+                        image.onerror = () => {
+                            URL.revokeObjectURL(svgUrl);
+                            reject(new Error('Snapshot render failed.'));
+                        };
+                        image.src = svgUrl;
+                    });
+
                     const url = URL.createObjectURL(blob);
                     const link = document.createElement('a');
                     link.href = url;
@@ -676,7 +724,6 @@ const firebaseConfig = {
                     link.remove();
                     URL.revokeObjectURL(url);
                 } catch (error) {
-                    if (error && error.name === 'AbortError') return;
                     console.error('Snapshot download failed:', error);
                     alert('Snapshot download failed. Please try again.');
                 }
@@ -2292,7 +2339,7 @@ const firebaseConfig = {
                             ) : (
                                 <div className="flex flex-col gap-4">
                                     {/* Pie Chart - Large */}
-                                    <div className={`rounded-lg shadow-lg p-6 ${darkMode ? 'bg-gray-800' : 'bg-white'}`} style={{height: '650px'}}>
+                                    <div ref={portfolioCardRef} className={`rounded-lg shadow-lg p-6 ${darkMode ? 'bg-gray-800' : 'bg-white'}`} style={{height: '650px'}}>
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="relative">
