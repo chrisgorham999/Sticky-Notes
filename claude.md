@@ -81,7 +81,7 @@ Sticky-Notes/
 - **Lines 2075-2135**: Legend UI with add/delete/color-change buttons
 - **Lines 2136-2158**: Unclassified notes section
 - **Lines 2159-2220**: Category sections with notes grid
-- **Lines 2310-2312**: Fixed footer ("Website created by Chris Gorham")
+- **Lines 2310-2312**: Fixed footer ("Website created by Red")
 
 ## Race Condition Fixes
 
