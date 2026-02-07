@@ -3152,7 +3152,7 @@ const firebaseConfig = {
 
                 <div className={`min-h-screen p-8 ${darkMode ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-gray-100 to-gray-200'}`}>
                     <div className="flex gap-6 max-w-full mx-auto items-start">
-                        <div className="flex-grow" style={{width: '65%'}}>
+                        <div className="flex-grow" style={{width: mainTab === 'notes' ? '77%' : '65%'}}>
                         <div className="flex items-center justify-between mb-4">
                             <div>
                                 <div className="flex items-center gap-3">
@@ -3845,9 +3845,9 @@ const firebaseConfig = {
                         )}
                         </div>
 
-                        {(mainTab === 'notes' || !isOwnerPortfolioUser) ? (
+                        {(mainTab === 'notes') ? (
                             /* Watch List Panel */
-                            <div className={`flex-shrink-0 ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-lg flex flex-col`} style={{width: '35%', maxHeight: 'calc(100vh - 9rem)', marginTop: '96px'}}>
+                            <div className={`flex-shrink-0 ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-lg flex flex-col`} style={{width: '23%', maxHeight: 'calc(100vh - 9rem)'}}>
                                 <div className="p-6 pb-4">
                                     <div className="flex items-center justify-between mb-4">
                                         <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Watch List</h3>
@@ -3908,9 +3908,9 @@ const firebaseConfig = {
                                     </div>
                                 </div>
                             </div>
-                        ) : (
+                        ) : (mainTab === 'portfolio' && isOwnerPortfolioUser ? (
                             /* IBKR Portfolio Panel (Portfolio tab) */
-                            <div className={`flex-shrink-0 ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-lg flex flex-col`} style={{width: '35%', maxHeight: 'calc(100vh - 9rem)', marginTop: '96px'}}>
+                            <div className={`flex-shrink-0 ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-lg flex flex-col`} style={{width: '35%', maxHeight: 'calc(100vh - 9rem)'}}>
                                 <div className="p-6 pb-4 border-b border-gray-200 dark:border-gray-700">
                                     <h3 className={`text-lg font-semibold mb-3 ${darkMode ? 'text-white' : 'text-gray-800'}`}>IBKR Portfolio</h3>
                                     <div className="flex items-center justify-between mb-2">
@@ -4077,7 +4077,7 @@ const firebaseConfig = {
                                     </div>
                                 </div>
                             </div>
-                        )}
+                        ) : null)}
                     </div>
                 </div>
 
