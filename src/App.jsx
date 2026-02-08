@@ -3911,7 +3911,7 @@ const firebaseConfig = {
                             /* IBKR Portfolio Panel (Portfolio tab) */
                             <div className={`flex-shrink-0 ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-lg flex flex-col`} style={{width: '35%', marginTop: '190px', paddingBottom: '16px'}}>
                                 <div className="p-6 pb-4 border-b border-gray-200 dark:border-gray-700">
-                                    <h3 className={`text-lg font-semibold mb-3 ${darkMode ? 'text-white' : 'text-gray-800'}`}>IBKR Portfolio</h3>
+                                    <h3 className={`text-lg font-semibold mb-3 ${darkMode ? 'text-white' : 'text-gray-800'}`}>CSP Portfolio (IBKR)</h3>
                                     <div className="flex items-center justify-between mb-2">
                                         <span className={`text-xs font-semibold uppercase tracking-wider ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Positions</span>
                                         <span className={`px-2 py-1 rounded text-[10px] font-semibold uppercase ${ibkrConnectionStatus === 'connected' ? 'bg-green-600/20 text-green-400' : ibkrConnectionStatus === 'syncing' ? 'bg-blue-600/20 text-blue-400' : ibkrConnectionStatus === 'stale' ? 'bg-yellow-600/20 text-yellow-400' : ibkrConnectionStatus === 'error' ? 'bg-red-600/20 text-red-400' : 'bg-gray-600/20 text-gray-400'}`}>
