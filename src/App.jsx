@@ -3155,7 +3155,7 @@ const firebaseConfig = {
                                     )}
                                 </p>
                             </div>
-                            <div className="flex gap-3 items-center">
+                            <div className="flex gap-3 items-center justify-end shrink-0 pl-6">
                                 {!finnhubApiKey && (
                                     <div className="flex items-center gap-2">
                                         <input
