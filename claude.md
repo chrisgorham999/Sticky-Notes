@@ -173,3 +173,26 @@ AVAILABLE_COLORS = [
 8. Cloud sync (check sync status indicator)
 9. Page refresh persistence
 10. Logout and login (categories and notes should persist)
+
+---
+
+## Recent Updates (Feb 2026)
+
+### Footer Credit Branding
+- Updated app footer credit text to:
+  - **"Website created and maintained by Eastern Shore AI, LLC"**
+- Footer credit link now points to:
+  - `https://www.easternshore.ai`
+- Code location:
+  - `src/App.jsx` (footer/legal area near bottom of main app view)
+
+### Login Screen Legal Area Update
+- Added the same Eastern Shore AI credit blurb to the **login page**, directly above the Privacy Policy and Terms of Use controls.
+- This keeps branding consistent between unauthenticated and authenticated views.
+- Code location:
+  - `src/App.jsx` in the login return block (the section with `Privacy Policy` and `Terms of Use` buttons)
+
+### Current Legal/Credit Behavior
+- Main app footer: shows Privacy Policy, Terms of Use, and Eastern Shore AI credit/link.
+- Login page legal area: now also shows Eastern Shore AI credit/link above Privacy/Terms.
+- Legal modals still open via `setLegalView('privacy')` / `setLegalView('terms')`.
