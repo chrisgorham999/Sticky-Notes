@@ -423,6 +423,10 @@ const firebaseConfig = {
             const [editingCategoryColor, setEditingCategoryColor] = useState(null);
             const [noteToDelete, setNoteToDelete] = useState(null);
             const [noticeModal, setNoticeModal] = useState({ open: false, title: '', message: '' });
+            const [backupModalOpen, setBackupModalOpen] = useState(false);
+            const [backupSnapshots, setBackupSnapshots] = useState([]);
+            const [backupsLoading, setBackupsLoading] = useState(false);
+            const [restoringBackupId, setRestoringBackupId] = useState('');
             const [expandedNote, setExpandedNote] = useState(null);
             const [stockData, setStockData] = useState(null);
             const [stockLoading, setStockLoading] = useState(false);
@@ -1212,6 +1216,79 @@ const firebaseConfig = {
 
             const showBrandedNotice = (message, title = 'Heads up') => {
                 setNoticeModal({ open: true, title, message });
+            };
+
+            const loadBackupSnapshots = async () => {
+                if (!db || !auth?.currentUser) return;
+                setBackupsLoading(true);
+                try {
+                    const snap = await db.collection('users').doc(auth.currentUser.uid)
+                        .collection('snapshots')
+                        .orderBy('backupCreatedAt', 'desc')
+                        .limit(20)
+                        .get();
+                    const rows = snap.docs.map((docSnap) => {
+                        const data = docSnap.data() || {};
+                        return {
+                            id: docSnap.id,
+                            ...data,
+                            backupCreatedAtMs: data.backupCreatedAt?.toMillis ? data.backupCreatedAt.toMillis() : null
+                        };
+                    });
+                    setBackupSnapshots(rows);
+                } catch (err) {
+                    console.error('Failed to load backups:', err);
+                    showBrandedNotice('Could not load backups right now.', 'Backup error');
+                } finally {
+                    setBackupsLoading(false);
+                }
+            };
+
+            const openBackupManager = async () => {
+                setProfilePhotoMenuOpen(false);
+                setBackupModalOpen(true);
+                await loadBackupSnapshots();
+            };
+
+            const restoreBackupSnapshot = async (snapshotId) => {
+                if (!db || !auth?.currentUser || !snapshotId) return;
+                setRestoringBackupId(snapshotId);
+                try {
+                    const ref = db.collection('users').doc(auth.currentUser.uid).collection('snapshots').doc(snapshotId);
+                    const snap = await ref.get();
+                    if (!snap.exists) throw new Error('Backup snapshot not found');
+                    const data = snap.data() || {};
+                    const restorePayload = sanitizeUserDocForSave({
+                        notes: data.notes || [],
+                        colorLabels: data.colorLabels || DEFAULT_COLOR_LABELS,
+                        categories: data.categories || DEFAULT_COLORS,
+                        nextId: data.nextId || 1,
+                        collapsedCategories: data.collapsedCategories || {},
+                        darkMode: !!data.darkMode,
+                        watchList: data.watchList || [],
+                        nickname: data.nickname || '',
+                        profilePhoto: data.profilePhoto || '',
+                        notesSortMode: data.notesSortMode || 'default',
+                        notesGroupMode: data.notesGroupMode || 'category',
+                        hideLegendPanel: !!data.hideLegendPanel,
+                        hideToolbarPanel: !!data.hideToolbarPanel,
+                        sharesPrivacyMode: data.sharesPrivacyMode || 'show',
+                        finnhubApiKey: data.finnhubApiKey || null,
+                        marketauxApiKey: data.marketauxApiKey || null
+                    });
+                    await saveUserDoc(auth.currentUser.uid, auth.currentUser.email || currentUser, restorePayload, {
+                        reason: 'restore-backup',
+                        forceBackup: true,
+                        minIntervalMs: 0
+                    });
+                    setBackupModalOpen(false);
+                    showBrandedNotice('Backup restored successfully. Your StickyNotes should refresh to that saved state.', 'Backup restored');
+                } catch (err) {
+                    console.error('Failed to restore backup:', err);
+                    showBrandedNotice(err?.message || 'Could not restore that backup.', 'Restore failed');
+                } finally {
+                    setRestoringBackupId('');
+                }
             };
 
             // Category management functions
@@ -3011,6 +3088,50 @@ const firebaseConfig = {
                     </div>
                 )}
 
+                {backupModalOpen && (
+                    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
+                        <div className={`w-full max-w-2xl rounded-xl shadow-2xl border ${darkMode ? 'bg-gray-900 border-cyan-500/40' : 'bg-white border-cyan-200'}`}>
+                            <div className={`flex justify-between items-center p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                                <h2 className={`text-xl font-black tracking-wide ${darkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>Backups & Restore</h2>
+                                <button onClick={() => setBackupModalOpen(false)} className={`${darkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-800'}`}><X size={24}/></button>
+                            </div>
+                            <div className="p-6">
+                                <p className={`text-sm leading-relaxed mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>These are your most recent automatic StickyNotes backups. Restoring one will overwrite your current live data with that saved snapshot.</p>
+                                <div className={`max-h-96 overflow-y-auto rounded-lg border ${darkMode ? 'border-gray-700 bg-gray-950' : 'border-gray-200 bg-gray-50'}`}>
+                                    {backupsLoading ? (
+                                        <div className={`p-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Loading backups…</div>
+                                    ) : backupSnapshots.length === 0 ? (
+                                        <div className={`p-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>No backups found yet.</div>
+                                    ) : (
+                                        backupSnapshots.map((backup) => {
+                                            const when = backup.backupCreatedAtMs ? new Date(backup.backupCreatedAtMs).toLocaleString() : 'Unknown time';
+                                            const notesCount = Array.isArray(backup.notes) ? backup.notes.length : 0;
+                                            return (
+                                                <div key={backup.id} className={`p-4 border-b last:border-b-0 ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+                                                    <div className="flex items-center justify-between gap-4">
+                                                        <div>
+                                                            <div className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{when}</div>
+                                                            <div className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Reason: {backup.backupReason || 'autosave'} • Notes: {notesCount}</div>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            disabled={restoringBackupId === backup.id}
+                                                            onClick={() => restoreBackupSnapshot(backup.id)}
+                                                            className={`px-3 py-2 rounded-lg text-sm font-semibold text-white ${restoringBackupId === backup.id ? 'bg-gray-500 cursor-wait' : 'bg-gradient-to-r from-fuchsia-600 to-cyan-500 hover:from-fuchsia-500 hover:to-cyan-400'}`}
+                                                        >
+                                                            {restoringBackupId === backup.id ? 'Restoring…' : 'Restore'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Branded Notice Modal */}
                 {noticeModal.open && (
                     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
@@ -3248,6 +3369,13 @@ const firebaseConfig = {
                                                             className={`w-full text-left px-2 py-1 rounded text-xs font-semibold ${darkMode ? 'text-red-300 hover:bg-gray-800' : 'text-red-600 hover:bg-gray-100'}`}
                                                         >
                                                             Remove
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={openBackupManager}
+                                                            className={`w-full text-left px-2 py-1 rounded text-xs font-semibold ${darkMode ? 'text-cyan-300 hover:bg-gray-800' : 'text-cyan-700 hover:bg-gray-100'}`}
+                                                        >
+                                                            Backups & Restore
                                                         </button>
                                                     </div>
                                                 )}
