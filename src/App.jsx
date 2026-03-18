@@ -98,6 +98,15 @@ const firebaseConfig = {
 
             db = firebase.firestore();
             auth = firebase.auth();
+
+            // Buffer writes locally in IndexedDB so data survives tab closes / network hiccups
+            db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+                if (err.code === 'failed-precondition') {
+                    console.warn('Firestore persistence unavailable (multiple tabs open)');
+                } else if (err.code === 'unimplemented') {
+                    console.warn('Firestore persistence not supported in this browser');
+                }
+            });
         } catch (error) {
             console.error("Firebase initialization error:", error);
         }
@@ -735,7 +744,7 @@ const firebaseConfig = {
                             setSyncStatus('offline');
                             isSavingRef.current = false;
                         });
-                    }, 10000);
+                    }, 2000);
 
                     saveTimeoutRef.current = timeout;
                     return () => {
@@ -1008,6 +1017,9 @@ const firebaseConfig = {
                         profilePhoto,
                         notesSortMode,
                         notesGroupMode,
+                        hideLegendPanel,
+                        hideToolbarPanel,
+                        sharesPrivacyMode,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     };
 
