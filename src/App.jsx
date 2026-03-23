@@ -644,10 +644,14 @@ const firebaseConfig = {
                             setTimeout(() => { isLoadingRef.current = false; }, 200);
 
                             // Handle API keys - support both encrypted and plain text formats
-                            // Try to decrypt, but fallback to plain string if decryption fails or data is plain text
+                            // Try to decrypt, but fallback to plain string if decryption fails or data is plain text.
+                            // IMPORTANT: never call setter('') here — a null/missing key in the snapshot just means
+                            // it wasn't saved yet (race with async decryption). Calling setter('') would wipe a
+                            // valid in-memory key and trigger an auto-save that nulls it in Firestore permanently.
+                            // The only way a key should become '' is through direct user action (clearing the input).
                             const handleApiKey = async (apiKeyData, setter) => {
                                 if (!apiKeyData) {
-                                    setter('');
+                                    // Field is null/missing in Firestore — leave existing state alone
                                     return;
                                 }
 
@@ -661,14 +665,14 @@ const firebaseConfig = {
                                 if (typeof apiKeyData === 'object' && apiKeyData.encrypted && apiKeyData.iv) {
                                     try {
                                         const decrypted = await decryptApiKey(apiKeyData, userId);
-                                        setter(decrypted || '');
+                                        if (decrypted) setter(decrypted);
+                                        // If decrypted is empty, leave existing state alone
                                     } catch (err) {
-                                        console.error('Decryption error:', err);
-                                        setter(''); // Clear on error
+                                        console.error('Decryption error — leaving existing key in state:', err);
+                                        // Do NOT call setter('') — that would wipe a valid key
                                     }
-                                } else {
-                                    setter(''); // Unknown format
                                 }
+                                // Unknown format — leave existing state alone
                             };
 
                             // Decrypt API keys asynchronously (non-blocking)
@@ -1264,6 +1268,8 @@ const firebaseConfig = {
                 setNickname('');
                 setProfilePhoto('');
                 setProfilePhotoMenuOpen(false);
+                setFinnhubApiKey('');
+                setMarketauxApiKey('');
                 // Reset categories to defaults on logout
                 setCategories(DEFAULT_COLORS);
                 setColorLabels(DEFAULT_COLOR_LABELS);
