@@ -602,8 +602,11 @@ const firebaseConfig = {
                         maybeAdoptCanonicalUserDoc(user).then((migrated) => {
                             if (migrated) showBrandedNotice('We found your existing StickyNotes data and reattached it to this login method.', 'Account recovered');
                         }).catch((err) => console.warn('Account adoption check failed:', err));
-                        // If this is a Google sign-in (or any provider with an avatar), auto-seed from auth photoURL
-                        setProfilePhoto((prev) => prev || user.photoURL || '');
+                        // NOTE: do NOT set profilePhoto here. profilePhoto is in the auto-save dep
+                        // array, so setting it triggers the auto-save immediately — before the Firestore
+                        // snapshot has loaded the user's actual data. That causes isSavingRef to block
+                        // the snapshot, and the auto-save then overwrites Firestore with empty/default state.
+                        // The snapshot handler already sets profilePhoto correctly (with Google URL fallback).
                     } else {
                         setCurrentUser(null);
                         setProfilePhoto('');
@@ -616,9 +619,21 @@ const firebaseConfig = {
             useEffect(() => {
                 if (!currentUser || !db || !auth.currentUser) return;
                 const userId = auth.currentUser.uid;
+
+                // Reset isSavingRef on every login. It can be left true if a Firestore snapshot
+                // echo fired between handleLogout's explicit reset and auth.signOut(). If left true
+                // it blocks every snapshot in the new session and the user's data never loads.
+                isSavingRef.current = false;
+
                 const unsubscribe = db.collection('users').doc(userId)
                     .onSnapshot((doc) => {
-                        if (doc.exists && !isSavingRef.current) {
+                        // New user — no Firestore doc yet. Seed Google avatar if available so
+                        // they see their photo immediately; the auto-save will persist it shortly.
+                        if (!doc.exists) {
+                            if (auth.currentUser?.photoURL) setProfilePhoto(auth.currentUser.photoURL);
+                            return;
+                        }
+                        if (!isSavingRef.current) {
                             const data = doc.data();
 
                             // Set loading flag to prevent orphan repair during data load
