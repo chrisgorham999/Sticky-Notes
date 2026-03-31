@@ -457,6 +457,7 @@ const firebaseConfig = {
             const [finnhubApiKey, setFinnhubApiKey] = useState('');
             const [showApiKeySuccess, setShowApiKeySuccess] = useState(false);
             const [watchList, setWatchList] = useState([]);
+            const [cashSecuredPuts, setCashSecuredPuts] = useState([]);
 
             // API key help popovers (click-to-toggle; closes on outside click / Escape)
             const [openHelp, setOpenHelp] = useState(null); // 'finnhub' | 'marketaux' | null
@@ -490,6 +491,10 @@ const firebaseConfig = {
             const [newsData, setNewsData] = useState(null);
             const [newsLoading, setNewsLoading] = useState(false);
             const [watchListModalTicker, setWatchListModalTicker] = useState(null);
+            const [showCashSecuredPutModal, setShowCashSecuredPutModal] = useState(false);
+            const [newPutTicker, setNewPutTicker] = useState('');
+            const [newPutStrike, setNewPutStrike] = useState('');
+            const [newPutExpiry, setNewPutExpiry] = useState('');
             const portfolioCardRef = useRef(null);
 
             const normalizeTicker = (value) => String(value || '').trim().toUpperCase();
@@ -719,6 +724,7 @@ const firebaseConfig = {
                             collapsedCategories,
                             darkMode,
                             watchList,
+                            cashSecuredPuts,
                             nickname,
                             profilePhoto,
                             notesSortMode,
@@ -770,7 +776,7 @@ const firebaseConfig = {
                         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
                     };
                 }
-            }, [notes, colorLabels, categories, nextId, collapsedCategories, darkMode, finnhubApiKey, marketauxApiKey, watchList, nickname, profilePhoto, notesSortMode, notesGroupMode, hideLegendPanel, hideToolbarPanel, sharesPrivacyMode]);
+            }, [notes, colorLabels, categories, nextId, collapsedCategories, darkMode, finnhubApiKey, marketauxApiKey, watchList, cashSecuredPuts, nickname, profilePhoto, notesSortMode, notesGroupMode, hideLegendPanel, hideToolbarPanel, sharesPrivacyMode]);
 
             useEffect(() => {
                 // IMPORTANT: beforeunload handlers MUST be synchronous. The browser kills the page
@@ -789,6 +795,7 @@ const firebaseConfig = {
                             collapsedCategories,
                             darkMode,
                             watchList,
+                            cashSecuredPuts,
                             nickname,
                             profilePhoto,
                             notesSortMode,
@@ -808,7 +815,7 @@ const firebaseConfig = {
 
                 window.addEventListener('beforeunload', handleBeforeUnload);
                 return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-            }, [currentUser, notes, colorLabels, categories, nextId, collapsedCategories, darkMode, finnhubApiKey, marketauxApiKey, watchList, nickname, profilePhoto, notesSortMode, notesGroupMode, hideLegendPanel, hideToolbarPanel, sharesPrivacyMode]);
+            }, [currentUser, notes, colorLabels, categories, nextId, collapsedCategories, darkMode, finnhubApiKey, marketauxApiKey, watchList, cashSecuredPuts, nickname, profilePhoto, notesSortMode, notesGroupMode, hideLegendPanel, hideToolbarPanel, sharesPrivacyMode]);
 
             const handleLogin = async (e) => {
                 e.preventDefault();
@@ -1055,6 +1062,22 @@ const firebaseConfig = {
                 }
             };
 
+
+            const addCashSecuredPut = () => {
+                const ticker = sanitizeTicker(newPutTicker);
+                const strike = String(newPutStrike || '').trim();
+                const expiry = String(newPutExpiry || '').trim();
+                if (!ticker || !strike || !expiry) return;
+                setCashSecuredPuts((prev) => ([...prev, { id: Date.now(), ticker, strike, expiry }]));
+                setNewPutTicker('');
+                setNewPutStrike('');
+                setNewPutExpiry('');
+                setShowCashSecuredPutModal(false);
+            };
+
+            const removeCashSecuredPut = (id) => {
+                setCashSecuredPuts((prev) => prev.filter((item) => item.id !== id));
+            };
             const addToWatchList = () => {
                 const sanitized = sanitizeTicker(newWatchTicker);
                 if (!sanitized) {
@@ -3010,6 +3033,27 @@ const firebaseConfig = {
                     </div>
                 )}
 
+
+                {showCashSecuredPutModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className={`w-full max-w-md rounded-xl shadow-2xl ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} p-6`}>
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-xl font-bold">Add Cash Secured Put</h3>
+                                <button onClick={() => setShowCashSecuredPutModal(false)} className={`p-2 rounded ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}><X size={18} /></button>
+                            </div>
+                            <div className="space-y-3">
+                                <input type="text" value={newPutTicker} onChange={(e) => setNewPutTicker(sanitizeTicker(e.target.value))} placeholder="Ticker" className={`w-full px-3 py-2 rounded border-2 ${darkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-800 border-gray-300'} focus:ring-2 focus:ring-blue-500 outline-none uppercase`} maxLength={12} />
+                                <input type="text" value={newPutStrike} onChange={(e) => setNewPutStrike(e.target.value)} placeholder="Strike price" className={`w-full px-3 py-2 rounded border-2 ${darkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-800 border-gray-300'} focus:ring-2 focus:ring-blue-500 outline-none`} />
+                                <input type="date" value={newPutExpiry} onChange={(e) => setNewPutExpiry(e.target.value)} className={`w-full px-3 py-2 rounded border-2 ${darkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-800 border-gray-300'} focus:ring-2 focus:ring-blue-500 outline-none`} />
+                            </div>
+                            <div className="flex justify-end gap-2 mt-5">
+                                <button onClick={() => setShowCashSecuredPutModal(false)} className={`px-4 py-2 rounded ${darkMode ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}`}>Cancel</button>
+                                <button onClick={addCashSecuredPut} className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Watch List Modal */}
                 {watchListModalTicker && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -4107,6 +4151,41 @@ const firebaseConfig = {
                         {(mainTab === 'notes') ? (
                             /* Watch List Panel */
                             <div className={`flex-shrink-0 w-full xl:w-[23%] mt-4 xl:mt-[198px] ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-lg flex flex-col`}>
+
+                                <div className="p-6 pb-2">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Cash Secured Puts</h3>
+                                        <button
+                                            onClick={() => setShowCashSecuredPutModal(true)}
+                                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded shadow"
+                                            title="Add cash secured put"
+                                        >
+                                            <Plus size={18}/>
+                                        </button>
+                                    </div>
+                                    <div className="space-y-2 mb-4">
+                                        {cashSecuredPuts.length === 0 ? (
+                                            <p className={`text-sm text-center py-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No cash secured puts</p>
+                                        ) : (
+                                            cashSecuredPuts.map((put) => (
+                                                <div key={put.id} className={`flex items-center justify-between p-3 rounded ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} hover:shadow-md transition-all`}>
+                                                    <div>
+                                                        <div className={`font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{put.ticker}</div>
+                                                        <div className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>${put.strike} · {put.expiry}</div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => removeCashSecuredPut(put.id)}
+                                                        className={`flex items-center justify-center w-8 h-8 rounded-full border ${darkMode ? 'border-red-400 text-red-300 hover:text-red-200 hover:border-red-300 hover:bg-red-900/20' : 'border-red-400 text-red-600 hover:text-red-700 hover:border-red-500 hover:bg-red-50'}`}
+                                                        aria-label={`Remove ${put.ticker} put`}
+                                                        title="Remove put"
+                                                    >
+                                                        <X size={18}/>
+                                                    </button>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
                                 <div className="p-6 pb-4">
                                     <div className="flex items-center justify-between mb-4">
                                         <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Watch List</h3>
@@ -4165,6 +4244,41 @@ const firebaseConfig = {
                         ) : (mainTab === 'portfolio' ? (
                             /* Watch List Panel */
                             <div className={`flex-shrink-0 w-full xl:w-[23%] mt-4 xl:mt-[198px] ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-lg flex flex-col`}>
+
+                                <div className="p-6 pb-2">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Cash Secured Puts</h3>
+                                        <button
+                                            onClick={() => setShowCashSecuredPutModal(true)}
+                                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded shadow"
+                                            title="Add cash secured put"
+                                        >
+                                            <Plus size={18}/>
+                                        </button>
+                                    </div>
+                                    <div className="space-y-2 mb-4">
+                                        {cashSecuredPuts.length === 0 ? (
+                                            <p className={`text-sm text-center py-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No cash secured puts</p>
+                                        ) : (
+                                            cashSecuredPuts.map((put) => (
+                                                <div key={put.id} className={`flex items-center justify-between p-3 rounded ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} hover:shadow-md transition-all`}>
+                                                    <div>
+                                                        <div className={`font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{put.ticker}</div>
+                                                        <div className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>${put.strike} · {put.expiry}</div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => removeCashSecuredPut(put.id)}
+                                                        className={`flex items-center justify-center w-8 h-8 rounded-full border ${darkMode ? 'border-red-400 text-red-300 hover:text-red-200 hover:border-red-300 hover:bg-red-900/20' : 'border-red-400 text-red-600 hover:text-red-700 hover:border-red-500 hover:bg-red-50'}`}
+                                                        aria-label={`Remove ${put.ticker} put`}
+                                                        title="Remove put"
+                                                    >
+                                                        <X size={18}/>
+                                                    </button>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
                                 <div className="p-6 pb-4">
                                     <div className="flex items-center justify-between mb-4">
                                         <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Watch List</h3>
