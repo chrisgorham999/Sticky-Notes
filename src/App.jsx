@@ -496,6 +496,7 @@ const firebaseConfig = {
             const [newPutStrike, setNewPutStrike] = useState('');
             const [newPutQty, setNewPutQty] = useState('');
             const [newPutExpiry, setNewPutExpiry] = useState('');
+            const [editingPutId, setEditingPutId] = useState(null);
             const portfolioCardRef = useRef(null);
 
             const normalizeTicker = (value) => String(value || '').trim().toUpperCase();
@@ -1084,12 +1085,26 @@ const firebaseConfig = {
                 const qty = String(newPutQty || '').trim();
                 const expiry = String(newPutExpiry || '').trim();
                 if (!ticker || !strike || !qty || !expiry) return;
-                setCashSecuredPuts((prev) => ([...prev, { id: Date.now(), ticker, strike, qty, expiry }]));
+                if (editingPutId) {
+                    setCashSecuredPuts((prev) => prev.map((item) => item.id === editingPutId ? { ...item, ticker, strike, qty, expiry } : item));
+                } else {
+                    setCashSecuredPuts((prev) => ([...prev, { id: Date.now(), ticker, strike, qty, expiry }]));
+                }
                 setNewPutTicker('');
                 setNewPutStrike('');
                 setNewPutQty('');
                 setNewPutExpiry('');
+                setEditingPutId(null);
                 setShowCashSecuredPutModal(false);
+            };
+
+            const startEditCashSecuredPut = (put) => {
+                setEditingPutId(put.id);
+                setNewPutTicker(put.ticker || '');
+                setNewPutStrike(put.strike || '');
+                setNewPutQty(put.qty || '');
+                setNewPutExpiry(put.expiry || '');
+                setShowCashSecuredPutModal(true);
             };
 
             const removeCashSecuredPut = (id) => {
@@ -3055,8 +3070,8 @@ const firebaseConfig = {
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className={`w-full max-w-md rounded-xl shadow-2xl ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} p-6`}>
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-xl font-bold">Add Cash Secured Put</h3>
-                                <button onClick={() => setShowCashSecuredPutModal(false)} className={`p-2 rounded ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}><X size={18} /></button>
+                                <h3 className="text-xl font-bold">{editingPutId ? 'Edit Cash Secured Put' : 'Add Cash Secured Put'}</h3>
+                                <button onClick={() => { setShowCashSecuredPutModal(false); setEditingPutId(null); setNewPutTicker(''); setNewPutStrike(''); setNewPutQty(''); setNewPutExpiry(''); }} className={`p-2 rounded ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}><X size={18} /></button>
                             </div>
                             <div className="space-y-3">
                                 <input type="text" value={newPutTicker} onChange={(e) => setNewPutTicker(sanitizeTicker(e.target.value))} placeholder="Ticker" className={`w-full px-3 py-2 rounded border-2 ${darkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-800 border-gray-300'} focus:ring-2 focus:ring-blue-500 outline-none uppercase`} maxLength={12} />
@@ -3065,8 +3080,8 @@ const firebaseConfig = {
                                 <input type="date" value={newPutExpiry} onChange={(e) => setNewPutExpiry(e.target.value)} className={`w-full px-3 py-2 rounded border-2 ${darkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-800 border-gray-300'} focus:ring-2 focus:ring-blue-500 outline-none`} />
                             </div>
                             <div className="flex justify-end gap-2 mt-5">
-                                <button onClick={() => setShowCashSecuredPutModal(false)} className={`px-4 py-2 rounded ${darkMode ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}`}>Cancel</button>
-                                <button onClick={addCashSecuredPut} className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow">Add</button>
+                                <button onClick={() => { setShowCashSecuredPutModal(false); setEditingPutId(null); setNewPutTicker(''); setNewPutStrike(''); setNewPutQty(''); setNewPutExpiry(''); }} className={`px-4 py-2 rounded ${darkMode ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}`}>Cancel</button>
+                                <button onClick={addCashSecuredPut} className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow">{editingPutId ? 'Save' : 'Add'}</button>
                             </div>
                         </div>
                     </div>
@@ -4189,7 +4204,7 @@ const firebaseConfig = {
                                             <p className={`text-sm text-center py-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No cash secured puts</p>
                                         ) : (
                                             cashSecuredPuts.map((put) => (
-                                                <div key={put.id} className={`flex items-center justify-between p-3 rounded ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} hover:shadow-md transition-all`}>
+                                                <div key={put.id} className={`flex items-center justify-between p-3 rounded cursor-pointer ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} hover:shadow-md transition-all`} onClick={() => startEditCashSecuredPut(put)}>
                                                     <div>
                                                         <div className={`font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{put.ticker}</div>
                                                         <div className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>${put.strike} · Qty {put.qty || '—'} · {put.expiry}</div>
@@ -4286,7 +4301,7 @@ const firebaseConfig = {
                                             <p className={`text-sm text-center py-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No cash secured puts</p>
                                         ) : (
                                             cashSecuredPuts.map((put) => (
-                                                <div key={put.id} className={`flex items-center justify-between p-3 rounded ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} hover:shadow-md transition-all`}>
+                                                <div key={put.id} className={`flex items-center justify-between p-3 rounded cursor-pointer ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} hover:shadow-md transition-all`} onClick={() => startEditCashSecuredPut(put)}>
                                                     <div>
                                                         <div className={`font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{put.ticker}</div>
                                                         <div className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>${put.strike} · Qty {put.qty || '—'} · {put.expiry}</div>
