@@ -565,8 +565,6 @@ const firebaseConfig = {
                 return normalized;
             };
 
-            const portfolioTickerKey = portfolioNotes.map(n => `${normalizeTicker(n.title)}:${n.shares || 0}`).sort().join('|');
-
             // Load cached portfolio prices immediately on init for instant chart display
             const [portfolioPrices, setPortfolioPrices] = useState(() => {
                 try {
@@ -1951,6 +1949,8 @@ const firebaseConfig = {
             const portfolioNotes = useMemo(() =>
                 notes.filter(n => n.title && n.shares && n.shares > 0),
             [notes]);
+
+            const portfolioTickerKey = portfolioNotes.map(n => `${normalizeTicker(n.title)}:${n.shares || 0}`).sort().join('|');
 
             // Portfolio price fetching effect - updates at 9:35am, 1pm, and 4:05pm EST
             useEffect(() => {
