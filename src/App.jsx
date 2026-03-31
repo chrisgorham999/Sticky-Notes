@@ -497,6 +497,7 @@ const firebaseConfig = {
             const [newPutQty, setNewPutQty] = useState('');
             const [newPutExpiry, setNewPutExpiry] = useState('');
             const [editingPutId, setEditingPutId] = useState(null);
+            const [cashSecuredPutsSortMode, setCashSecuredPutsSortMode] = useState('alpha');
             const portfolioCardRef = useRef(null);
 
             const normalizeTicker = (value) => String(value || '').trim().toUpperCase();
@@ -728,6 +729,7 @@ const firebaseConfig = {
                             darkMode,
                             watchList,
                             cashSecuredPuts,
+                            cashSecuredPutsSortMode,
                             nickname,
                             profilePhoto,
                             notesSortMode,
@@ -779,7 +781,7 @@ const firebaseConfig = {
                         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
                     };
                 }
-            }, [notes, colorLabels, categories, nextId, collapsedCategories, darkMode, finnhubApiKey, marketauxApiKey, watchList, cashSecuredPuts, nickname, profilePhoto, notesSortMode, notesGroupMode, hideLegendPanel, hideToolbarPanel, sharesPrivacyMode]);
+            }, [notes, colorLabels, categories, nextId, collapsedCategories, darkMode, finnhubApiKey, marketauxApiKey, watchList, cashSecuredPuts, cashSecuredPutsSortMode, nickname, profilePhoto, notesSortMode, notesGroupMode, hideLegendPanel, hideToolbarPanel, sharesPrivacyMode]);
 
             useEffect(() => {
                 // IMPORTANT: beforeunload handlers MUST be synchronous. The browser kills the page
@@ -799,6 +801,7 @@ const firebaseConfig = {
                             darkMode,
                             watchList,
                             cashSecuredPuts,
+                            cashSecuredPutsSortMode,
                             nickname,
                             profilePhoto,
                             notesSortMode,
@@ -818,7 +821,7 @@ const firebaseConfig = {
 
                 window.addEventListener('beforeunload', handleBeforeUnload);
                 return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-            }, [currentUser, notes, colorLabels, categories, nextId, collapsedCategories, darkMode, finnhubApiKey, marketauxApiKey, watchList, cashSecuredPuts, nickname, profilePhoto, notesSortMode, notesGroupMode, hideLegendPanel, hideToolbarPanel, sharesPrivacyMode]);
+            }, [currentUser, notes, colorLabels, categories, nextId, collapsedCategories, darkMode, finnhubApiKey, marketauxApiKey, watchList, cashSecuredPuts, cashSecuredPutsSortMode, nickname, profilePhoto, notesSortMode, notesGroupMode, hideLegendPanel, hideToolbarPanel, sharesPrivacyMode]);
 
             const handleLogin = async (e) => {
                 e.preventDefault();
@@ -1080,6 +1083,12 @@ const firebaseConfig = {
 
             const getPutObligation = (put) => parseMoneyNumber(put?.strike) * parseMoneyNumber(put?.qty) * 100;
             const totalPutObligation = cashSecuredPuts.reduce((sum, put) => sum + getPutObligation(put), 0);
+            const sortedCashSecuredPuts = [...cashSecuredPuts].sort((a, b) => {
+                if (cashSecuredPutsSortMode === 'obligation_desc') return getPutObligation(b) - getPutObligation(a);
+                if (cashSecuredPutsSortMode === 'obligation_asc') return getPutObligation(a) - getPutObligation(b);
+                return String(a.ticker || '').localeCompare(String(b.ticker || ''));
+            });
+
             const addCashSecuredPut = () => {
                 const ticker = sanitizeTicker(newPutTicker);
                 const strike = String(newPutStrike || '').trim();
@@ -4192,6 +4201,15 @@ const firebaseConfig = {
                                             <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Cash Secured Puts</h3>
                                             <div className={`text-sm mt-1 ${darkMode ? 'text-green-300' : 'text-green-700'}`}>Total buying obligation: {formatUsd(totalPutObligation)}</div>
                                         </div>
+                                        <select
+                                            value={cashSecuredPutsSortMode}
+                                            onChange={(e) => setCashSecuredPutsSortMode(e.target.value)}
+                                            className={`ml-3 px-2 py-1 rounded border text-sm ${darkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-800 border-gray-300'}`}
+                                        >
+                                            <option value="alpha">Alphabetical</option>
+                                            <option value="obligation_desc">Obligation High → Low</option>
+                                            <option value="obligation_asc">Obligation Low → High</option>
+                                        </select>
                                         <button
                                             onClick={() => setShowCashSecuredPutModal(true)}
                                             className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded shadow"
@@ -4204,7 +4222,7 @@ const firebaseConfig = {
                                         {cashSecuredPuts.length === 0 ? (
                                             <p className={`text-sm text-center py-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No cash secured puts</p>
                                         ) : (
-                                            cashSecuredPuts.map((put) => (
+                                            sortedCashSecuredPuts.map((put) => (
                                                 <div key={put.id} className={`flex items-center justify-between p-3 rounded cursor-pointer ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} hover:shadow-md transition-all`} onClick={() => startEditCashSecuredPut(put)}>
                                                     <div>
                                                         <div className={`font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{put.ticker}</div>
@@ -4289,6 +4307,15 @@ const firebaseConfig = {
                                             <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Cash Secured Puts</h3>
                                             <div className={`text-sm mt-1 ${darkMode ? 'text-green-300' : 'text-green-700'}`}>Total buying obligation: {formatUsd(totalPutObligation)}</div>
                                         </div>
+                                        <select
+                                            value={cashSecuredPutsSortMode}
+                                            onChange={(e) => setCashSecuredPutsSortMode(e.target.value)}
+                                            className={`ml-3 px-2 py-1 rounded border text-sm ${darkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-800 border-gray-300'}`}
+                                        >
+                                            <option value="alpha">Alphabetical</option>
+                                            <option value="obligation_desc">Obligation High → Low</option>
+                                            <option value="obligation_asc">Obligation Low → High</option>
+                                        </select>
                                         <button
                                             onClick={() => setShowCashSecuredPutModal(true)}
                                             className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded shadow"
@@ -4301,7 +4328,7 @@ const firebaseConfig = {
                                         {cashSecuredPuts.length === 0 ? (
                                             <p className={`text-sm text-center py-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No cash secured puts</p>
                                         ) : (
-                                            cashSecuredPuts.map((put) => (
+                                            sortedCashSecuredPuts.map((put) => (
                                                 <div key={put.id} className={`flex items-center justify-between p-3 rounded cursor-pointer ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} hover:shadow-md transition-all`} onClick={() => startEditCashSecuredPut(put)}>
                                                     <div>
                                                         <div className={`font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{put.ticker}</div>
