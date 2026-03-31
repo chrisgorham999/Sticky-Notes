@@ -514,6 +514,8 @@ const firebaseConfig = {
                 return normalized;
             };
 
+            const portfolioTickerKey = portfolioNotes.map(n => `${normalizeTicker(n.title)}:${n.shares || 0}`).sort().join('|');
+
             // Load cached portfolio prices immediately on init for instant chart display
             const [portfolioPrices, setPortfolioPrices] = useState(() => {
                 try {
@@ -1082,7 +1084,6 @@ const firebaseConfig = {
             }).format(Number(value || 0));
 
             const getPutObligation = (put) => parseMoneyNumber(put?.strike) * parseMoneyNumber(put?.qty) * 100;
-            const portfolioTickerKey = portfolioNotes.map(n => `${normalizeTicker(n.title)}:${n.shares || 0}`).sort().join('|');
             const totalPutObligation = cashSecuredPuts.reduce((sum, put) => sum + getPutObligation(put), 0);
             const sortedCashSecuredPuts = [...cashSecuredPuts].sort((a, b) => {
                 if (cashSecuredPutsSortMode === 'obligation_desc') return getPutObligation(b) - getPutObligation(a);
