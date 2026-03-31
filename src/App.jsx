@@ -4230,26 +4230,6 @@ const firebaseConfig = {
                                             Low → High
                                         </button>
                                     </div>
-                                    <div className={`inline-flex rounded-lg p-1 mb-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                                        <button
-                                            onClick={() => setCashSecuredPutsSortMode('alpha')}
-                                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${cashSecuredPutsSortMode === 'alpha' ? (darkMode ? 'bg-blue-500 text-white' : 'bg-blue-500 text-white') : (darkMode ? 'text-gray-300 hover:bg-gray-600' : 'text-gray-700 hover:bg-gray-200')}`}
-                                        >
-                                            A–Z
-                                        </button>
-                                        <button
-                                            onClick={() => setCashSecuredPutsSortMode('obligation_desc')}
-                                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${cashSecuredPutsSortMode === 'obligation_desc' ? (darkMode ? 'bg-blue-500 text-white' : 'bg-blue-500 text-white') : (darkMode ? 'text-gray-300 hover:bg-gray-600' : 'text-gray-700 hover:bg-gray-200')}`}
-                                        >
-                                            High → Low
-                                        </button>
-                                        <button
-                                            onClick={() => setCashSecuredPutsSortMode('obligation_asc')}
-                                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${cashSecuredPutsSortMode === 'obligation_asc' ? (darkMode ? 'bg-blue-500 text-white' : 'bg-blue-500 text-white') : (darkMode ? 'text-gray-300 hover:bg-gray-600' : 'text-gray-700 hover:bg-gray-200')}`}
-                                        >
-                                            Low → High
-                                        </button>
-                                    </div>
                                     <div className="space-y-2 mb-4">
                                         {cashSecuredPuts.length === 0 ? (
                                             <p className={`text-sm text-center py-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No cash secured puts</p>
