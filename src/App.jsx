@@ -654,6 +654,7 @@ const firebaseConfig = {
                             setCollapsedCategories(data.collapsedCategories || {});
                             setDarkMode(data.darkMode || false);
                             setWatchList(data.watchList || []);
+                            setCashSecuredPuts(data.cashSecuredPuts || []);
                             setNickname(data.nickname || '');
                             setProfilePhoto(data.profilePhoto || auth.currentUser?.photoURL || '');
                             setNotesSortMode(data.notesSortMode || 'default');
