@@ -1064,6 +1064,20 @@ const firebaseConfig = {
             };
 
 
+
+            const parseMoneyNumber = (value) => {
+                const n = parseFloat(String(value || '').replace(/[^0-9.\-]/g, ''));
+                return Number.isFinite(n) ? n : 0;
+            };
+
+            const formatUsd = (value) => new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                maximumFractionDigits: 2,
+            }).format(Number(value || 0));
+
+            const getPutObligation = (put) => parseMoneyNumber(put?.strike) * parseMoneyNumber(put?.qty) * 100;
+            const totalPutObligation = cashSecuredPuts.reduce((sum, put) => sum + getPutObligation(put), 0);
             const addCashSecuredPut = () => {
                 const ticker = sanitizeTicker(newPutTicker);
                 const strike = String(newPutStrike || '').trim();
@@ -4158,7 +4172,10 @@ const firebaseConfig = {
 
                                 <div className="p-6 pb-2">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Cash Secured Puts</h3>
+                                        <div>
+                                            <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Cash Secured Puts</h3>
+                                            <div className={`text-sm mt-1 ${darkMode ? 'text-green-300' : 'text-green-700'}`}>Total buying obligation: {formatUsd(totalPutObligation)}</div>
+                                        </div>
                                         <button
                                             onClick={() => setShowCashSecuredPutModal(true)}
                                             className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded shadow"
@@ -4176,6 +4193,7 @@ const firebaseConfig = {
                                                     <div>
                                                         <div className={`font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{put.ticker}</div>
                                                         <div className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>${put.strike} · Qty {put.qty || '—'} · {put.expiry}</div>
+                                                        <div className={`text-sm font-medium ${darkMode ? 'text-green-300' : 'text-green-700'}`}>Buying obligation: {formatUsd(getPutObligation(put))}</div>
                                                     </div>
                                                     <button
                                                         onClick={() => removeCashSecuredPut(put.id)}
@@ -4251,7 +4269,10 @@ const firebaseConfig = {
 
                                 <div className="p-6 pb-2">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Cash Secured Puts</h3>
+                                        <div>
+                                            <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Cash Secured Puts</h3>
+                                            <div className={`text-sm mt-1 ${darkMode ? 'text-green-300' : 'text-green-700'}`}>Total buying obligation: {formatUsd(totalPutObligation)}</div>
+                                        </div>
                                         <button
                                             onClick={() => setShowCashSecuredPutModal(true)}
                                             className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded shadow"
@@ -4269,6 +4290,7 @@ const firebaseConfig = {
                                                     <div>
                                                         <div className={`font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{put.ticker}</div>
                                                         <div className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>${put.strike} · Qty {put.qty || '—'} · {put.expiry}</div>
+                                                        <div className={`text-sm font-medium ${darkMode ? 'text-green-300' : 'text-green-700'}`}>Buying obligation: {formatUsd(getPutObligation(put))}</div>
                                                     </div>
                                                     <button
                                                         onClick={() => removeCashSecuredPut(put.id)}
