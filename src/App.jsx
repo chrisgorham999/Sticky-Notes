@@ -93,7 +93,7 @@ const firebaseConfig = {
             const appCheckSiteKey = import.meta.env.VITE_RECAPTCHA_V3_SITE_KEY || '';
             if (appCheckSiteKey) {
                 const appCheck = firebase.appCheck();
-                appCheck.activate(appCheckSiteKey, true);
+                appCheck.activate(appCheckSiteKey, false);
             }
 
             db = firebase.firestore();
