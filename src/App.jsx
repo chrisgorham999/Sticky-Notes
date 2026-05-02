@@ -1335,6 +1335,8 @@ const firebaseConfig = {
                 setMarketauxApiKey('');
                 // Reset categories to defaults on logout
                 setCategories(DEFAULT_COLORS);
+                // Clear localStorage cache on logout
+                localStorage.removeItem('portfolio_prices_cache');
                 setColorLabels(DEFAULT_COLOR_LABELS);
             };
 
