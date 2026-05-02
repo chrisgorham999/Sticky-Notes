@@ -1198,8 +1198,8 @@ const firebaseConfig = {
                 const suggestedName = `portfolio-${timestamp}.png`;
 
                 try {
-                    if (window.html2canvas) {
-                        const snapshotCanvas = await window.html2canvas(card, {
+                    if (html2canvas) {
+                        const snapshotCanvas = await html2canvas(card, {
                             backgroundColor: null,
                             scale: window.devicePixelRatio || 1,
                             onclone: (clonedDoc) => {
