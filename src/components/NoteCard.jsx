@@ -130,6 +130,9 @@ export default function NoteCard({
             >
                 <Maximize size={16} />
             </button>
+            <span className={`absolute bottom-3 left-3 text-[11px] font-semibold px-2 py-1 rounded ${darkMode ? 'bg-gray-900/60 text-gray-200' : 'bg-white/60 text-gray-700'}`}>
+                {colorLabels[note.color] || 'Category'}
+            </span>
         </div>
     );
 }
