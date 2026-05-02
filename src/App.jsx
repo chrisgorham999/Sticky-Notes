@@ -1198,7 +1198,8 @@ const firebaseConfig = {
                 const suggestedName = `portfolio-${timestamp}.png`;
 
                 try {
-                    if (html2canvas) {
+                    console.log('html2canvas type:', typeof html2canvas, html2canvas);
+                    if (typeof html2canvas === 'function') {
                         const snapshotCanvas = await html2canvas(card, {
                             backgroundColor: '#ffffff',
                             scale: window.devicePixelRatio || 1,
