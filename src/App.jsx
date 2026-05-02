@@ -66,7 +66,7 @@ import 'firebase/compat/firestore'
 import 'firebase/compat/app-check'
 import { Chart } from 'chart.js/auto'
 import ChartDataLabels from 'chartjs-plugin-datalabels'
-import html2canvas from 'html2canvas'
+import html2canvas from 'html2canvas-pro'
 import NoteCard from './components/NoteCard.jsx'
 
 // Firebase web config (public client config; restrict key in Google Cloud Console)
@@ -1198,7 +1198,6 @@ const firebaseConfig = {
                 const suggestedName = `portfolio-${timestamp}.png`;
 
                 try {
-                    console.log('html2canvas type:', typeof html2canvas, html2canvas);
                     if (typeof html2canvas === 'function') {
                         const snapshotCanvas = await html2canvas(card, {
                             backgroundColor: '#ffffff',
