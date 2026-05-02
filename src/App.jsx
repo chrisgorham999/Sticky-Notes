@@ -100,7 +100,7 @@ const firebaseConfig = {
             auth = firebase.auth();
 
             // Buffer writes locally in IndexedDB so data survives tab closes / network hiccups
-            db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+            db.enablePersistence({ experimentalForceOwningTab: true }).catch((err) => {
                 if (err.code === 'failed-precondition') {
                     console.warn('Firestore persistence unavailable (multiple tabs open)');
                 } else if (err.code === 'unimplemented') {
@@ -2424,7 +2424,7 @@ const firebaseConfig = {
                             {!auth && <div className="bg-yellow-900 border border-yellow-600 text-yellow-200 px-4 py-3 rounded mb-4 text-sm"><strong>Setup Required:</strong> Add Firebase credentials</div>}
                             <form onSubmit={handleLogin} className="space-y-4">
                                 <div><label className="block text-sm font-medium text-gray-300 mb-2">Email</label><input type="email" value={loginUsername} onChange={(e) => setLoginUsername(e.target.value)} className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-cyan-500 outline-none placeholder-gray-400" placeholder="Enter email"/></div>
-                                {!isResettingPassword && <div><label className="block text-sm font-medium text-gray-300 mb-2">Password</label><input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-cyan-500 outline-none placeholder-gray-400" placeholder="Enter password"/></div>}
+                                {!isResettingPassword && <div><label className="block text-sm font-medium text-gray-300 mb-2">Password</label><input type="password" autocomplete="current-password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-cyan-500 outline-none placeholder-gray-400" placeholder="Enter password"/></div>}
                                 {loginError && <p className="text-red-400 text-sm">{loginError}</p>}
                                 {resetSuccess && <p className="text-green-400 text-sm">Password reset email sent!</p>}
                                 <button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-700 text-white py-2 rounded-lg font-medium">{isResettingPassword ? 'Send Reset Email' : (isSignup ? 'Sign Up with Email' : 'Login')}</button>
