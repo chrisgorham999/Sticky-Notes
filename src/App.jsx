@@ -140,26 +140,33 @@ const firebaseConfig = {
 
         // Default stock-focused categories (users can customize/delete/add later)
         const DEFAULT_COLOR_LABELS = {
-            'bg-blue-200': 'Core Holding',
-            'bg-green-200': 'Swing Trade',
-            'bg-purple-200': 'Value',
-            'bg-orange-200': 'Growth',
-            'bg-red-300': 'Speculative'
+            'bg-blue-600': 'Core Holding',
+            'bg-green-600': 'Swing Trade',
+            'bg-purple-600': 'Value',
+            'bg-orange-500': 'Growth',
+            'bg-red-600': 'Speculative'
         };
 
-        const DEFAULT_COLORS = ['bg-blue-200', 'bg-green-200', 'bg-purple-200', 'bg-orange-200', 'bg-red-300'];
-        const UNCLASSIFIED_COLOR = 'bg-gray-300';
 
-        // Available Tailwind colors for category customization
+        const DEFAULT_COLORS = ['bg-blue-600', 'bg-green-600', 'bg-purple-600', 'bg-orange-500', 'bg-red-600'];
+        const UNCLASSIFIED_COLOR = 'bg-gray-400';
+
+
+        // Available bold solid colors for category customization
         const AVAILABLE_COLORS = [
-            'bg-yellow-200', 'bg-yellow-300', 'bg-yellow-400',
-            'bg-pink-200', 'bg-pink-300', 'bg-pink-400',
-            'bg-blue-200', 'bg-blue-300', 'bg-blue-400',
-            'bg-green-200', 'bg-green-300', 'bg-green-400',
-            'bg-red-200', 'bg-red-300', 'bg-red-400',
-            'bg-orange-200', 'bg-orange-300', 'bg-orange-400',
-            'bg-purple-200', 'bg-purple-300', 'bg-purple-400',
-            'bg-teal-200', 'bg-teal-300', 'bg-cyan-200'
+            'bg-yellow-500', 'bg-yellow-600',
+            'bg-pink-500', 'bg-pink-600',
+            'bg-blue-500', 'bg-blue-600', 'bg-blue-700',
+            'bg-green-500', 'bg-green-600', 'bg-green-700',
+            'bg-red-500', 'bg-red-600', 'bg-red-700',
+            'bg-orange-500', 'bg-orange-600',
+            'bg-purple-500', 'bg-purple-600', 'bg-purple-700',
+            'bg-teal-500', 'bg-teal-600',
+            'bg-cyan-500', 'bg-cyan-600',
+            'bg-indigo-500', 'bg-indigo-600',
+            'bg-rose-500', 'bg-rose-600',
+            'bg-amber-500', 'bg-amber-600',
+            'bg-lime-500', 'bg-lime-600',
         ];
         const MIN_CATEGORIES = 1;
         const MAX_CATEGORIES = 10;
