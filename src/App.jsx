@@ -1200,9 +1200,8 @@ const firebaseConfig = {
                 try {
                     if (html2canvas) {
                         const snapshotCanvas = await html2canvas(card, {
-                            backgroundColor: null,
+                            backgroundColor: '#ffffff',
                             scale: window.devicePixelRatio || 1,
-                            colorScheme: 'light',
                             onclone: (clonedDoc) => {
                                 clonedDoc.querySelectorAll('.snapshot-hide').forEach((el) => {
                                     el.style.display = 'none';
