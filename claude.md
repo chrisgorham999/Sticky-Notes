@@ -16,7 +16,7 @@ A React SPA for managing stock-related sticky notes with portfolio tracking, rea
 | Stock API | Finnhub (quotes, fundamentals, earnings) |
 | News API | MarketAux |
 | Charts | Chart.js v4 + chartjs-plugin-datalabels |
-| Screenshot | html2canvas |
+| Screenshot | html2canvas-pro |
 
 ---
 
@@ -290,3 +290,8 @@ Same Eastern Shore AI credit blurb appears above Privacy/Terms buttons on the lo
 - JSON-LD `WebApplication` schema added to `index.html`
 - `robots.txt` and `sitemap.xml` added to `public/`
 - AI-agent navigation comment block added to top of `src/App.jsx`
+
+### Portfolio Snapshot Fix (May 2026)
+- **Problem:** Snapshot button threw `"Attempting to parse an unsupported color function oklch"` because html2canvas 1.4.1 can't parse modern CSS `oklch` colors used by Tailwind.
+- **Fix:** Replaced `html2canvas` with `html2canvas-pro` (v2.0.2), which supports modern CSS color functions.
+- Also fixed: `window.html2canvas` → direct import reference; App Check debug mode (`true`→`false`) which caused reCAPTCHA timeout errors.
