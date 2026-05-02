@@ -453,7 +453,7 @@ const firebaseConfig = {
             const [editingCategoryColor, setEditingCategoryColor] = useState(null);
             const [noteToDelete, setNoteToDelete] = useState(null);
             const [putToDelete, setPutToDelete] = useState(null);
-            const [noticeModal, setNoticeModal] = useState({ open: false, title: '', message: '' });
+            const [noticeModal, setNoticeModal] = useState({ open: false, title: '', message: '', type: 'info', onConfirm: null });
             const [backupModalOpen, setBackupModalOpen] = useState(false);
             const [backupSnapshots, setBackupSnapshots] = useState([]);
             const [backupsLoading, setBackupsLoading] = useState(false);
@@ -1361,8 +1361,8 @@ const firebaseConfig = {
                 setNoteToDelete(null);
             };
 
-            const showBrandedNotice = (message, title = 'Heads up') => {
-                setNoticeModal({ open: true, title, message });
+            const showBrandedNotice = (message, title = 'Heads up', type = 'info', onConfirm = null) => {
+                setNoticeModal({ open: true, title, message, type, onConfirm });
             };
 
             const loadBackupSnapshots = async () => {
@@ -1470,16 +1470,24 @@ const firebaseConfig = {
 
             const confirmDeleteCategory = () => {
                 if (!categoryToDelete || !reassignTarget) return;
-                // Move all notes from deleted category to target category
-                setNotes(notes.map(n => n.color === categoryToDelete ? {...n, color: reassignTarget} : n));
-                // Remove the category
-                setCategories(categories.filter(c => c !== categoryToDelete));
-                const newLabels = {...colorLabels};
-                delete newLabels[categoryToDelete];
-                setColorLabels(newLabels);
-                // Clear modal state
+                const deleteColor = categoryToDelete;
+                const moveToColor = reassignTarget;
                 setCategoryToDelete(null);
                 setReassignTarget(null);
+                showBrandedNotice(
+                    `Are you sure you want to permanently delete the "${colorLabels[deleteColor]}" category? This action cannot be undone.`,
+                    'Confirm Delete',
+                    'danger',
+                    () => {
+                        // Move all notes from deleted category to target category
+                        setNotes(notes.map(n => n.color === deleteColor ? {...n, color: moveToColor} : n));
+                        // Remove the category
+                        setCategories(categories.filter(c => c !== deleteColor));
+                        const newLabels = {...colorLabels};
+                        delete newLabels[deleteColor];
+                        setColorLabels(newLabels);
+                    }
+                );
             };
 
             // Ref to track intentional color changes (prevents orphan repair race condition)
@@ -3308,20 +3316,39 @@ const firebaseConfig = {
                     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
                         <div className={`w-full max-w-md rounded-xl shadow-2xl border ${darkMode ? 'bg-gray-900 border-cyan-500/40' : 'bg-white border-cyan-200'}`}>
                             <div className={`flex justify-between items-center p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                                <h2 className={`text-xl font-black tracking-wide ${darkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>{noticeModal.title}</h2>
-                                <button onClick={() => setNoticeModal({ open: false, title: '', message: '' })} className={`${darkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-800'}`}>
+                                <h2 className={`text-xl font-black tracking-wide ${noticeModal.type === 'danger' ? 'text-red-400' : darkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>{noticeModal.title}</h2>
+                                <button onClick={() => setNoticeModal({ open: false, title: '', message: '', type: 'info', onConfirm: null })} className={`${darkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-800'}`}>
                                     <X size={24}/>
                                 </button>
                             </div>
                             <div className="p-6">
                                 <p className={`text-sm leading-relaxed mb-6 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{noticeModal.message}</p>
-                                <div className="flex justify-end">
+                                <div className="flex justify-end gap-3">
                                     <button
-                                        onClick={() => setNoticeModal({ open: false, title: '', message: '' })}
-                                        className="px-4 py-2 rounded-lg font-semibold text-white bg-gradient-to-r from-fuchsia-600 to-cyan-500 hover:from-fuchsia-500 hover:to-cyan-400"
+                                        onClick={() => setNoticeModal({ open: false, title: '', message: '', type: 'info', onConfirm: null })}
+                                        className={`px-4 py-2 rounded-lg font-semibold ${darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                                     >
-                                        Got it
+                                        Cancel
                                     </button>
+                                    {noticeModal.type === 'danger' && noticeModal.onConfirm && (
+                                        <button
+                                            onClick={() => {
+                                                noticeModal.onConfirm();
+                                                setNoticeModal({ open: false, title: '', message: '', type: 'info', onConfirm: null });
+                                            }}
+                                            className="px-4 py-2 rounded-lg font-semibold text-white bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400"
+                                        >
+                                            Delete Forever
+                                        </button>
+                                    )}
+                                    {noticeModal.type !== 'danger' && (
+                                        <button
+                                            onClick={() => setNoticeModal({ open: false, title: '', message: '', type: 'info', onConfirm: null })}
+                                            className="px-4 py-2 rounded-lg font-semibold text-white bg-gradient-to-r from-fuchsia-600 to-cyan-500 hover:from-fuchsia-500 hover:to-cyan-400"
+                                        >
+                                            Got it
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
