@@ -68,6 +68,7 @@ import { Chart } from 'chart.js/auto'
 import ChartDataLabels from 'chartjs-plugin-datalabels'
 import html2canvas from 'html2canvas-pro'
 import NoteCard from './components/NoteCard.jsx'
+import AskK from './components/AskK.jsx'
 
 // Firebase web config (public client config; restrict key in Google Cloud Console)
 const firebaseConfig = {
@@ -2106,6 +2107,37 @@ const firebaseConfig = {
                 () => portfolioData.filter(h => !Number.isFinite(h.price) || h.price <= 0).length,
                 [portfolioData]
             );
+
+            // Snapshot of portfolio state shipped to the Ask K assistant on each turn.
+            const askKPortfolio = useMemo(() => ({
+                asOf: new Date().toISOString(),
+                nickname: nickname || null,
+                totals: {
+                    longMarketValue: Number(totalPortfolioValue.toFixed(2)),
+                    cspObligation: Number(totalPutObligation.toFixed(2)),
+                    longPlusCspExposure: Number((totalPortfolioValue + totalPutObligation).toFixed(2)),
+                    positionCount: portfolioData.length,
+                    cspCount: cashSecuredPuts.length,
+                    missingPrices: missingPortfolioPriceCount
+                },
+                positions: portfolioData.map(h => ({
+                    ticker: h.ticker,
+                    shares: h.shares,
+                    price: Number((h.price || 0).toFixed(4)),
+                    value: Number((h.value || 0).toFixed(2)),
+                    percentOfPortfolio: Number((h.percentage || 0).toFixed(2)),
+                    category: colorLabels[h.color] || 'Unclassified'
+                })),
+                cashSecuredPuts: cashSecuredPuts.map(p => ({
+                    ticker: p.ticker,
+                    strike: Number(p.strike) || 0,
+                    qty: Number(p.qty) || 0,
+                    expiry: p.expiry || null,
+                    obligation: (Number(p.strike) || 0) * (Number(p.qty) || 0) * 100
+                })),
+                watchList: Array.isArray(watchList) ? watchList.slice(0, 100) : [],
+                categories: categories.map(c => ({ color: c, label: colorLabels[c] || 'Category' }))
+            }), [nickname, totalPortfolioValue, totalPutObligation, portfolioData, cashSecuredPuts, watchList, categories, colorLabels, missingPortfolioPriceCount]);
 
             // Update shares for a note
             const updateNoteShares = (noteId, shares) => {
@@ -4487,6 +4519,9 @@ const firebaseConfig = {
                         ) : null)}
                     </div>
                 </div>
+
+                {/* Ask K — portfolio analysis assistant */}
+                <AskK portfolio={askKPortfolio} darkMode={darkMode} />
 
                 {/* Footer */}
                 <footer className={`text-center pt-8 pb-4 px-4 text-xs sm:text-sm border-t ${darkMode ? 'bg-gray-900 text-white border-gray-700' : 'bg-white text-gray-800 border-gray-200'}`}>
