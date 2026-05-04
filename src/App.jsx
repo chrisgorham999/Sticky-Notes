@@ -2109,35 +2109,54 @@ const firebaseConfig = {
             );
 
             // Snapshot of portfolio state shipped to the Ask K assistant on each turn.
-            const askKPortfolio = useMemo(() => ({
-                asOf: new Date().toISOString(),
-                nickname: nickname || null,
-                totals: {
-                    longMarketValue: Number(totalPortfolioValue.toFixed(2)),
-                    cspObligation: Number(totalPutObligation.toFixed(2)),
-                    longPlusCspExposure: Number((totalPortfolioValue + totalPutObligation).toFixed(2)),
-                    positionCount: portfolioData.length,
-                    cspCount: cashSecuredPuts.length,
-                    missingPrices: missingPortfolioPriceCount
-                },
-                positions: portfolioData.map(h => ({
-                    ticker: h.ticker,
-                    shares: h.shares,
-                    price: Number((h.price || 0).toFixed(4)),
-                    value: Number((h.value || 0).toFixed(2)),
-                    percentOfPortfolio: Number((h.percentage || 0).toFixed(2)),
-                    category: colorLabels[h.color] || 'Unclassified'
-                })),
-                cashSecuredPuts: cashSecuredPuts.map(p => ({
-                    ticker: p.ticker,
-                    strike: Number(p.strike) || 0,
-                    qty: Number(p.qty) || 0,
-                    expiry: p.expiry || null,
-                    obligation: (Number(p.strike) || 0) * (Number(p.qty) || 0) * 100
-                })),
-                watchList: Array.isArray(watchList) ? watchList.slice(0, 100) : [],
-                categories: categories.map(c => ({ color: c, label: colorLabels[c] || 'Category' }))
-            }), [nickname, totalPortfolioValue, totalPutObligation, portfolioData, cashSecuredPuts, watchList, categories, colorLabels, missingPortfolioPriceCount]);
+            const askKPortfolio = useMemo(() => {
+                const noteById = new Map(notes.map(n => [n.id, n]));
+                const portfolioNoteIds = new Set(portfolioData.map(h => h.noteId));
+                const trimNote = (t) => String(t || '').trim().slice(0, 1500);
+
+                return {
+                    asOf: new Date().toISOString(),
+                    nickname: nickname || null,
+                    totals: {
+                        longMarketValue: Number(totalPortfolioValue.toFixed(2)),
+                        cspObligation: Number(totalPutObligation.toFixed(2)),
+                        longPlusCspExposure: Number((totalPortfolioValue + totalPutObligation).toFixed(2)),
+                        positionCount: portfolioData.length,
+                        cspCount: cashSecuredPuts.length,
+                        missingPrices: missingPortfolioPriceCount
+                    },
+                    positions: portfolioData.map(h => {
+                        const n = noteById.get(h.noteId);
+                        return {
+                            ticker: h.ticker,
+                            shares: h.shares,
+                            price: Number((h.price || 0).toFixed(4)),
+                            value: Number((h.value || 0).toFixed(2)),
+                            percentOfPortfolio: Number((h.percentage || 0).toFixed(2)),
+                            category: colorLabels[h.color] || 'Unclassified',
+                            note: trimNote(n?.text)
+                        };
+                    }),
+                    // Notes with content that aren't tied to a position (research/thesis on watch-list or pre-position tickers).
+                    researchNotes: notes
+                        .filter(n => n.title && n.text && n.text.trim() && !portfolioNoteIds.has(n.id))
+                        .slice(0, 50)
+                        .map(n => ({
+                            ticker: normalizeTicker(n.title) || n.title,
+                            category: colorLabels[n.color] || 'Unclassified',
+                            note: trimNote(n.text)
+                        })),
+                    cashSecuredPuts: cashSecuredPuts.map(p => ({
+                        ticker: p.ticker,
+                        strike: Number(p.strike) || 0,
+                        qty: Number(p.qty) || 0,
+                        expiry: p.expiry || null,
+                        obligation: (Number(p.strike) || 0) * (Number(p.qty) || 0) * 100
+                    })),
+                    watchList: Array.isArray(watchList) ? watchList.slice(0, 100) : [],
+                    categories: categories.map(c => ({ color: c, label: colorLabels[c] || 'Category' }))
+                };
+            }, [notes, nickname, totalPortfolioValue, totalPutObligation, portfolioData, cashSecuredPuts, watchList, categories, colorLabels, missingPortfolioPriceCount]);
 
             // Update shares for a note
             const updateNoteShares = (noteId, shares) => {
