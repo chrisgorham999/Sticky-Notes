@@ -2158,6 +2158,14 @@ const firebaseConfig = {
                 [portfolioData]
             );
 
+            const cashPortfolioValue = useMemo(() =>
+                portfolioData
+                    .filter(h => (colorLabels[h.color] || '').trim().toLowerCase() === 'cash')
+                    .reduce((sum, h) => sum + h.value, 0),
+            [portfolioData, colorLabels]);
+            const cspObligatedCashValue = Math.min(Math.max(totalPutObligation, 0), cashPortfolioValue);
+            const freeCashValue = Math.max(cashPortfolioValue - cspObligatedCashValue, 0);
+
             // Stable key for chart redraws. Firestore snapshots can replace `notes` with
             // equal data, which creates new portfolioData arrays; depending on the array
             // identity made Chart.js destroy/recreate the pie chart and visibly flash.
@@ -2253,19 +2261,33 @@ const firebaseConfig = {
                     const nonCashPositions = currentPortfolioData.filter(h => !isCashPosition(h));
                     const cashValue = cashPositions.reduce((sum, h) => sum + h.value, 0);
                     const cashPercentage = cashPositions.reduce((sum, h) => sum + h.percentage, 0);
-                    const chartPortfolioData = cashPositions.length > 0 ? [
-                        {
-                            ticker: 'Cash',
-                            shares: cashPositions.reduce((sum, h) => sum + (Number(h.shares) || 0), 0),
-                            price: 1,
-                            value: cashValue,
-                            percentage: cashPercentage,
-                            color: cashPositions[0].color,
-                            isCashGroup: true,
-                            positions: cashPositions
-                        },
-                        ...nonCashPositions
-                    ].sort((a, b) => b.value - a.value) : currentPortfolioData;
+                    const cashColor = cashPositions[0]?.color;
+                    const cspObligatedCashValue = Math.min(Math.max(totalPutObligation, 0), cashValue);
+                    const freeCashValue = Math.max(cashValue - cspObligatedCashValue, 0);
+                    const makeCashSlice = (ticker, value, extra = {}) => ({
+                        ticker,
+                        shares: cashPositions.reduce((sum, h) => sum + (Number(h.shares) || 0), 0),
+                        price: 1,
+                        value,
+                        percentage: totalPortfolioValue > 0 ? (value / totalPortfolioValue) * 100 : 0,
+                        color: cashColor,
+                        isCashGroup: true,
+                        positions: cashPositions,
+                        ...extra
+                    });
+                    const cashSlices = cashPositions.length > 0
+                        ? [
+                            ...(freeCashValue > 0 ? [makeCashSlice('Cash', freeCashValue)] : []),
+                            ...(cspObligatedCashValue > 0 ? [makeCashSlice('Cash*', cspObligatedCashValue, { isCspObligatedCash: true, chartColor: '#166534' })] : [])
+                        ]
+                        : [];
+                    const groupedForChart = cashPositions.length > 0
+                        ? [
+                            { ticker: 'Cash', value: cashValue, percentage: cashPercentage, isCashPlaceholder: true, slices: cashSlices },
+                            ...nonCashPositions
+                        ].sort((a, b) => b.value - a.value)
+                        : currentPortfolioData;
+                    const chartPortfolioData = groupedForChart.flatMap(h => h.isCashPlaceholder ? h.slices : [h]);
 
                     // Separate large slices (>=3%) from small ones, combine small into "Others"
                     // Lower threshold = more visible slices in the pie.
@@ -2278,7 +2300,7 @@ const firebaseConfig = {
                     // Build chart data: large slices + "Others" if there are small slices
                     const chartLabels = largeSlices.map(h => h.ticker);
                     const chartValues = largeSlices.map(h => h.value);
-                    const chartColors = largeSlices.map(h => getStickyColorHex(h.color));
+                    const chartColors = largeSlices.map(h => h.chartColor || getStickyColorHex(h.color));
 
                     if (smallSlices.length > 0) {
                         chartLabels.push('Others');
@@ -2321,7 +2343,7 @@ const firebaseConfig = {
                                                 const sliceIndex = largeSlices.findIndex(ls => ls.ticker === h.ticker);
                                                 return {
                                                     text: `${h.ticker} - ${h.percentage.toFixed(1)}% - ${valueText}`,
-                                                    fillStyle: sliceIndex >= 0 ? getStickyColorHex(h.color) : '#9CA3AF',
+                                                    fillStyle: sliceIndex >= 0 ? (h.chartColor || getStickyColorHex(h.color)) : '#9CA3AF',
                                                     strokeStyle: darkMode ? '#1f2937' : '#ffffff',
                                                     fontColor: darkMode ? '#ffffff' : '#374151',
                                                     lineWidth: 1,
@@ -2346,10 +2368,11 @@ const firebaseConfig = {
                                             const h = largeSlices[ctx.dataIndex];
                                             if (h.isCashGroup) {
                                                 const tickers = h.positions.map(p => p.ticker).join(', ');
+                                                const labelPrefix = h.isCspObligatedCash ? 'Cash obligated to CSPs' : 'Free cash';
                                                 if (hidePortfolioValues) {
-                                                    return `Cash (${tickers}): ${h.percentage.toFixed(1)}%`;
+                                                    return `${labelPrefix} (${tickers}): ${h.percentage.toFixed(1)}%`;
                                                 }
-                                                return `Cash (${tickers}): $${h.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${h.percentage.toFixed(1)}%)`;
+                                                return `${labelPrefix} (${tickers}): $${h.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${h.percentage.toFixed(1)}%)`;
                                             }
                                             if (hidePortfolioValues) {
                                                 return `${h.ticker}: ${h.shares} shares (${h.percentage.toFixed(1)}%)`;
@@ -2386,7 +2409,7 @@ const firebaseConfig = {
                     clearTimeout(timeoutId);
                     if (chartInstance.current) chartInstance.current.destroy();
                 };
-            }, [mainTab, portfolioChartDataKey, darkMode, hidePortfolioValues, colorLabels]);
+            }, [mainTab, portfolioChartDataKey, darkMode, hidePortfolioValues, colorLabels, totalPutObligation, totalPortfolioValue]);
 
             if (!currentUser) {
                 return (
@@ -4401,9 +4424,19 @@ const firebaseConfig = {
                                                 Snapshot
                                             </button>
                                         </div>
-                                        <div style={{height: '560px'}}>
+                                        <div style={{height: '520px'}}>
                                             <canvas ref={chartRef}></canvas>
                                         </div>
+                                        {cashPortfolioValue > 0 && totalPutObligation > 0 && (
+                                            <div className={`mt-2 text-xs leading-relaxed ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                                                <span className={`font-semibold ${darkMode ? 'text-green-300' : 'text-green-700'}`}>* Cash Secured Put obligation:</span>{' '}
+                                                <span className={hidePortfolioValues ? 'blur-sm select-none' : ''}>{formatUsd(totalPutObligation)}</span>
+                                                {' '}— shaded dark green shows{' '}
+                                                <span className={hidePortfolioValues ? 'blur-sm select-none' : ''}>{formatUsd(cspObligatedCashValue)}</span>
+                                                {' '}of cash obligated to CSPs; free cash is{' '}
+                                                <span className={hidePortfolioValues ? 'blur-sm select-none' : ''}>{formatUsd(freeCashValue)}</span>.
+                                            </div>
+                                        )}
                                     </div>
 
                                 </div>
