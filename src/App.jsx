@@ -2283,7 +2283,7 @@ const firebaseConfig = {
                         : [];
                     const groupedForChart = cashPositions.length > 0
                         ? [
-                            { ticker: 'Cash', value: cashValue, percentage: cashPercentage, isCashPlaceholder: true, slices: cashSlices },
+                            { ticker: 'Cash', value: cashValue, percentage: cashPercentage, color: cashColor, isCashPlaceholder: true, slices: cashSlices },
                             ...nonCashPositions
                         ].sort((a, b) => b.value - a.value)
                         : currentPortfolioData;
@@ -2341,17 +2341,21 @@ const firebaseConfig = {
                                         usePointStyle: true,
                                         pointStyle: 'circle',
                                         generateLabels: () => {
-                                            return chartPortfolioData.map((h, i) => {
+                                            // Keep Cash as one legend row even though the pie splits it into
+                                            // free cash + CSP-obligated cash slices.
+                                            return groupedForChart.map((h, i) => {
                                                 const valueText = hidePortfolioValues ? '•••••' : `$${h.value.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
-                                                const sliceIndex = largeSlices.findIndex(ls => ls.ticker === h.ticker);
+                                                const sliceIndex = h.isCashPlaceholder
+                                                    ? largeSlices.findIndex(ls => ls.isCashGroup)
+                                                    : largeSlices.findIndex(ls => ls.ticker === h.ticker);
                                                 return {
                                                     text: `${h.ticker} - ${h.percentage.toFixed(1)}% - ${valueText}`,
-                                                    fillStyle: sliceIndex >= 0 ? (h.chartColor || getStickyColorHex(h.color)) : '#9CA3AF',
+                                                    fillStyle: sliceIndex >= 0 ? getStickyColorHex(h.color) : '#9CA3AF',
                                                     strokeStyle: darkMode ? '#1f2937' : '#ffffff',
                                                     fontColor: darkMode ? '#ffffff' : '#374151',
                                                     lineWidth: 1,
                                                     hidden: false,
-                                                    index: i
+                                                    index: sliceIndex >= 0 ? sliceIndex : i
                                                 };
                                             });
                                         }
