@@ -2121,9 +2121,10 @@ const firebaseConfig = {
                     Number((h.price || 0).toFixed(4)),
                     Number((h.value || 0).toFixed(2)),
                     Number((h.percentage || 0).toFixed(4)),
-                    h.color
+                    h.color,
+                    colorLabels[h.color] || ''
                 ].join(':')).join('|'),
-            [portfolioData]);
+            [portfolioData, colorLabels]);
 
             // Snapshot of portfolio state shipped to the Ask K assistant on each turn.
             const askKPortfolio = useMemo(() => {
@@ -2201,11 +2202,33 @@ const firebaseConfig = {
                         '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1'
                     ];
 
+                    // Group every position whose category label is "Cash" into one dedicated
+                    // chart slice. Keep that Cash slice visible even if it is under the normal
+                    // small-slice threshold, then combine only small non-cash positions into Others.
+                    const isCashPosition = (h) => (colorLabels[h.color] || '').trim().toLowerCase() === 'cash';
+                    const cashPositions = currentPortfolioData.filter(isCashPosition);
+                    const nonCashPositions = currentPortfolioData.filter(h => !isCashPosition(h));
+                    const cashValue = cashPositions.reduce((sum, h) => sum + h.value, 0);
+                    const cashPercentage = cashPositions.reduce((sum, h) => sum + h.percentage, 0);
+                    const chartPortfolioData = cashPositions.length > 0 ? [
+                        {
+                            ticker: 'Cash',
+                            shares: cashPositions.reduce((sum, h) => sum + (Number(h.shares) || 0), 0),
+                            price: 1,
+                            value: cashValue,
+                            percentage: cashPercentage,
+                            color: cashPositions[0].color,
+                            isCashGroup: true,
+                            positions: cashPositions
+                        },
+                        ...nonCashPositions
+                    ].sort((a, b) => b.value - a.value) : currentPortfolioData;
+
                     // Separate large slices (>=3%) from small ones, combine small into "Others"
                     // Lower threshold = more visible slices in the pie.
                     const SLICE_THRESHOLD_PCT = 3;
-                    const largeSlices = currentPortfolioData.filter(h => h.percentage >= SLICE_THRESHOLD_PCT);
-                    const smallSlices = currentPortfolioData.filter(h => h.percentage < SLICE_THRESHOLD_PCT);
+                    const largeSlices = chartPortfolioData.filter(h => h.isCashGroup || h.percentage >= SLICE_THRESHOLD_PCT);
+                    const smallSlices = chartPortfolioData.filter(h => !h.isCashGroup && h.percentage < SLICE_THRESHOLD_PCT);
                     const othersValue = smallSlices.reduce((sum, h) => sum + h.value, 0);
                     const othersPercentage = smallSlices.reduce((sum, h) => sum + h.percentage, 0);
 
@@ -2249,15 +2272,13 @@ const firebaseConfig = {
                                         boxWidth: 10,
                                         usePointStyle: true,
                                         pointStyle: 'circle',
-                                        generateLabels: (chart) => {
-                                            // Show ALL positions in legend (not just chart slices)
-                                            return currentPortfolioData.map((h, i) => {
+                                        generateLabels: () => {
+                                            return chartPortfolioData.map((h, i) => {
                                                 const valueText = hidePortfolioValues ? '•••••' : `$${h.value.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+                                                const sliceIndex = largeSlices.findIndex(ls => ls.ticker === h.ticker);
                                                 return {
                                                     text: `${h.ticker} - ${h.percentage.toFixed(1)}% - ${valueText}`,
-                                                    fillStyle: h.percentage >= SLICE_THRESHOLD_PCT
-                                                        ? colors[Math.max(0, largeSlices.findIndex(ls => ls.ticker === h.ticker)) % colors.length]
-                                                        : '#9CA3AF',
+                                                    fillStyle: sliceIndex >= 0 ? colors[sliceIndex % colors.length] : '#9CA3AF',
                                                     strokeStyle: darkMode ? '#1f2937' : '#ffffff',
                                                     fontColor: darkMode ? '#ffffff' : '#374151',
                                                     lineWidth: 1,
@@ -2280,6 +2301,13 @@ const firebaseConfig = {
                                                 return `Others (${tickers}): $${othersValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${othersPercentage.toFixed(1)}%)`;
                                             }
                                             const h = largeSlices[ctx.dataIndex];
+                                            if (h.isCashGroup) {
+                                                const tickers = h.positions.map(p => p.ticker).join(', ');
+                                                if (hidePortfolioValues) {
+                                                    return `Cash (${tickers}): ${h.percentage.toFixed(1)}%`;
+                                                }
+                                                return `Cash (${tickers}): $${h.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${h.percentage.toFixed(1)}%)`;
+                                            }
                                             if (hidePortfolioValues) {
                                                 return `${h.ticker}: ${h.shares} shares (${h.percentage.toFixed(1)}%)`;
                                             }
@@ -2315,7 +2343,7 @@ const firebaseConfig = {
                     clearTimeout(timeoutId);
                     if (chartInstance.current) chartInstance.current.destroy();
                 };
-            }, [mainTab, portfolioChartDataKey, darkMode, hidePortfolioValues]);
+            }, [mainTab, portfolioChartDataKey, darkMode, hidePortfolioValues, colorLabels]);
 
             if (!currentUser) {
                 return (
