@@ -561,6 +561,7 @@ const firebaseConfig = {
             const portfolioCardRef = useRef(null);
 
             const normalizeTicker = (value) => String(value || '').trim().toUpperCase();
+            const isUsdTicker = (value) => normalizeTicker(value) === 'USD';
             const normalizePriceMap = (prices) => {
                 const normalized = {};
                 if (!prices || typeof prices !== 'object') return normalized;
@@ -1157,12 +1158,14 @@ const firebaseConfig = {
             };
 
             const handleRefreshPortfolioPrices = async () => {
-                if (!finnhubApiKey) {
-                    showBrandedNotice('Please add your Finnhub API key first.');
-                    return;
-                }
                 if (portfolioNotes.length === 0) {
                     showBrandedNotice('No portfolio positions to refresh.');
+                    return;
+                }
+
+                const nonUsdPortfolioNotes = portfolioNotes.filter(note => !isUsdTicker(note.title));
+                if (!finnhubApiKey && nonUsdPortfolioNotes.length > 0) {
+                    showBrandedNotice('Please add your Finnhub API key first.');
                     return;
                 }
 
@@ -1171,6 +1174,10 @@ const firebaseConfig = {
                 for (const note of portfolioNotes) {
                     try {
                         const ticker = normalizeTicker(note.title);
+                        if (isUsdTicker(ticker)) {
+                            prices[ticker] = 1;
+                            continue;
+                        }
                         const portfolioQuoteUrl = buildApiUrl('https://finnhub.io/api/v1/quote', {
                             symbol: ticker,
                             token: finnhubApiKey
@@ -1974,7 +1981,10 @@ const firebaseConfig = {
 
             // Portfolio price fetching effect - updates at 9:35am, 1pm, and 4:05pm EST
             useEffect(() => {
-                if (!finnhubApiKey || portfolioNotes.length === 0) return;
+                if (portfolioNotes.length === 0) return;
+
+                const nonUsdPortfolioNotes = portfolioNotes.filter(note => !isUsdTicker(note.title));
+                if (!finnhubApiKey && nonUsdPortfolioNotes.length > 0) return;
 
                 let isMounted = true;
 
@@ -2056,6 +2066,10 @@ const firebaseConfig = {
                     for (const note of portfolioNotes) {
                         try {
                             const ticker = normalizeTicker(note.title);
+                            if (isUsdTicker(ticker)) {
+                                prices[ticker] = 1;
+                                continue;
+                            }
                             const portfolioQuoteUrl = buildApiUrl('https://finnhub.io/api/v1/quote', {
                                 symbol: ticker,
                                 token: finnhubApiKey
@@ -2089,7 +2103,7 @@ const firebaseConfig = {
             const portfolioData = useMemo(() => {
                 const holdings = portfolioNotes.map(n => {
                     const ticker = normalizeTicker(n.title);
-                    const price = portfolioPrices[ticker] || 0;
+                    const price = isUsdTicker(ticker) ? 1 : portfolioPrices[ticker] || 0;
                     const value = price * n.shares;
                     return { ticker: ticker || n.title, shares: n.shares, price, value, noteId: n.id, color: n.color };
                 });
