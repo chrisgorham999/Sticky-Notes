@@ -169,6 +169,40 @@ const firebaseConfig = {
             'bg-amber-500', 'bg-amber-600',
             'bg-lime-500', 'bg-lime-600',
         ];
+        const STICKY_COLOR_HEX = {
+            'bg-yellow-500': '#eab308',
+            'bg-yellow-600': '#ca8a04',
+            'bg-pink-500': '#ec4899',
+            'bg-pink-600': '#db2777',
+            'bg-blue-500': '#3b82f6',
+            'bg-blue-600': '#2563eb',
+            'bg-blue-700': '#1d4ed8',
+            'bg-green-500': '#22c55e',
+            'bg-green-600': '#16a34a',
+            'bg-green-700': '#15803d',
+            'bg-red-500': '#ef4444',
+            'bg-red-600': '#dc2626',
+            'bg-red-700': '#b91c1c',
+            'bg-orange-500': '#f97316',
+            'bg-orange-600': '#ea580c',
+            'bg-purple-500': '#a855f7',
+            'bg-purple-600': '#9333ea',
+            'bg-purple-700': '#7e22ce',
+            'bg-teal-500': '#14b8a6',
+            'bg-teal-600': '#0d9488',
+            'bg-cyan-500': '#06b6d4',
+            'bg-cyan-600': '#0891b2',
+            'bg-indigo-500': '#6366f1',
+            'bg-indigo-600': '#4f46e5',
+            'bg-rose-500': '#f43f5e',
+            'bg-rose-600': '#e11d48',
+            'bg-amber-500': '#f59e0b',
+            'bg-amber-600': '#d97706',
+            'bg-lime-500': '#84cc16',
+            'bg-lime-600': '#65a30d',
+            'bg-gray-400': '#9ca3af'
+        };
+        const getStickyColorHex = (colorClass, fallback = '#9CA3AF') => STICKY_COLOR_HEX[colorClass] || fallback;
         const MIN_CATEGORIES = 1;
         const MAX_CATEGORIES = 10;
 
@@ -2211,11 +2245,6 @@ const firebaseConfig = {
                         chartInstance.current.destroy();
                     }
 
-                    const colors = [
-                        '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
-                        '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1'
-                    ];
-
                     // Group every position whose category label is "Cash" into one dedicated
                     // chart slice. Keep that Cash slice visible even if it is under the normal
                     // small-slice threshold, then combine only small non-cash positions into Others.
@@ -2249,7 +2278,7 @@ const firebaseConfig = {
                     // Build chart data: large slices + "Others" if there are small slices
                     const chartLabels = largeSlices.map(h => h.ticker);
                     const chartValues = largeSlices.map(h => h.value);
-                    const chartColors = largeSlices.map((_, i) => colors[i % colors.length]);
+                    const chartColors = largeSlices.map(h => getStickyColorHex(h.color));
 
                     if (smallSlices.length > 0) {
                         chartLabels.push('Others');
@@ -2292,7 +2321,7 @@ const firebaseConfig = {
                                                 const sliceIndex = largeSlices.findIndex(ls => ls.ticker === h.ticker);
                                                 return {
                                                     text: `${h.ticker} - ${h.percentage.toFixed(1)}% - ${valueText}`,
-                                                    fillStyle: sliceIndex >= 0 ? colors[sliceIndex % colors.length] : '#9CA3AF',
+                                                    fillStyle: sliceIndex >= 0 ? getStickyColorHex(h.color) : '#9CA3AF',
                                                     strokeStyle: darkMode ? '#1f2937' : '#ffffff',
                                                     fontColor: darkMode ? '#ffffff' : '#374151',
                                                     lineWidth: 1,
