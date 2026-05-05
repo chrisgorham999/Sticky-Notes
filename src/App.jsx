@@ -2246,6 +2246,8 @@ const firebaseConfig = {
                         price: 1,
                         value,
                         percentage: totalPortfolioValue > 0 ? (value / totalPortfolioValue) * 100 : 0,
+                        cashTotalPercentage: cashPercentage,
+                        percentOfCash: cashValue > 0 ? (value / cashValue) * 100 : 0,
                         color: cashColor,
                         isCashGroup: true,
                         positions: cashPositions,
@@ -2378,11 +2380,16 @@ const firebaseConfig = {
                                             const h = largeSlices[ctx.dataIndex];
                                             if (h.isCashGroup) {
                                                 const tickers = h.positions.map(p => p.ticker).join(', ');
-                                                const labelPrefix = h.isCspObligatedCash ? 'Cash obligated to CSPs' : 'Free cash';
-                                                if (hidePortfolioValues) {
-                                                    return `${labelPrefix} (${tickers}): ${h.percentage.toFixed(1)}%`;
+                                                if (h.isCspObligatedCash) {
+                                                    if (hidePortfolioValues) {
+                                                        return `CSP Obligations (${tickers}): ${h.percentOfCash.toFixed(1)}% of cash`;
+                                                    }
+                                                    return `CSP Obligations (${tickers}): $${h.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${h.percentOfCash.toFixed(1)}% of cash)`;
                                                 }
-                                                return `${labelPrefix} (${tickers}): $${h.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${h.percentage.toFixed(1)}%)`;
+                                                if (hidePortfolioValues) {
+                                                    return `Cash (${tickers}): ${h.cashTotalPercentage.toFixed(1)}%`;
+                                                }
+                                                return `Cash (${tickers}): $${h.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${h.cashTotalPercentage.toFixed(1)}% total cash)`;
                                             }
                                             if (hidePortfolioValues) {
                                                 return `${h.ticker}: ${h.shares} shares (${h.percentage.toFixed(1)}%)`;
@@ -2400,9 +2407,16 @@ const firebaseConfig = {
                                     }),
                                     formatter: (value, ctx) => {
                                         const label = chartLabels[ctx.dataIndex];
+                                        const slice = largeSlices[ctx.dataIndex];
+                                        if (slice?.isCspObligatedCash) {
+                                            return `${label}\n${Math.round(slice.percentOfCash)}% of cash`;
+                                        }
+                                        if (slice?.isCashGroup) {
+                                            return `${label}\n${Math.round(slice.cashTotalPercentage)}%`;
+                                        }
                                         const percentage = label === 'Others'
                                             ? Math.round(othersPercentage)
-                                            : Math.round(largeSlices[ctx.dataIndex].percentage);
+                                            : Math.round(slice.percentage);
                                         return `${label}\n${percentage}%`;
                                     },
                                     anchor: 'center',
