@@ -169,40 +169,6 @@ const firebaseConfig = {
             'bg-amber-500', 'bg-amber-600',
             'bg-lime-500', 'bg-lime-600',
         ];
-        const STICKY_COLOR_HEX = {
-            'bg-yellow-500': '#eab308',
-            'bg-yellow-600': '#ca8a04',
-            'bg-pink-500': '#ec4899',
-            'bg-pink-600': '#db2777',
-            'bg-blue-500': '#3b82f6',
-            'bg-blue-600': '#2563eb',
-            'bg-blue-700': '#1d4ed8',
-            'bg-green-500': '#22c55e',
-            'bg-green-600': '#16a34a',
-            'bg-green-700': '#15803d',
-            'bg-red-500': '#ef4444',
-            'bg-red-600': '#dc2626',
-            'bg-red-700': '#b91c1c',
-            'bg-orange-500': '#f97316',
-            'bg-orange-600': '#ea580c',
-            'bg-purple-500': '#a855f7',
-            'bg-purple-600': '#9333ea',
-            'bg-purple-700': '#7e22ce',
-            'bg-teal-500': '#14b8a6',
-            'bg-teal-600': '#0d9488',
-            'bg-cyan-500': '#06b6d4',
-            'bg-cyan-600': '#0891b2',
-            'bg-indigo-500': '#6366f1',
-            'bg-indigo-600': '#4f46e5',
-            'bg-rose-500': '#f43f5e',
-            'bg-rose-600': '#e11d48',
-            'bg-amber-500': '#f59e0b',
-            'bg-amber-600': '#d97706',
-            'bg-lime-500': '#84cc16',
-            'bg-lime-600': '#65a30d',
-            'bg-gray-400': '#9ca3af'
-        };
-        const getStickyColorHex = (colorClass, fallback = '#9CA3AF') => STICKY_COLOR_HEX[colorClass] || fallback;
         const shadeHex = (hex, factor = 0.88) => {
             const clean = String(hex || '').replace('#', '');
             if (clean.length !== 6) return hex;
@@ -2271,6 +2237,7 @@ const firebaseConfig = {
                     const cashValue = cashPositions.reduce((sum, h) => sum + h.value, 0);
                     const cashPercentage = cashPositions.reduce((sum, h) => sum + h.percentage, 0);
                     const cashColor = cashPositions[0]?.color;
+                    const CASH_CHART_COLOR = '#16a34a';
                     const cspObligatedCashValue = Math.min(Math.max(totalPutObligation, 0), cashValue);
                     const freeCashValue = Math.max(cashValue - cspObligatedCashValue, 0);
                     const makeCashSlice = (ticker, value, extra = {}) => ({
@@ -2286,8 +2253,8 @@ const firebaseConfig = {
                     });
                     const cashSlices = cashPositions.length > 0
                         ? [
-                            ...(freeCashValue > 0 ? [makeCashSlice('Cash', freeCashValue)] : []),
-                            ...(cspObligatedCashValue > 0 ? [makeCashSlice('Cash*', cspObligatedCashValue, { isCspObligatedCash: true, chartColor: shadeHex(getStickyColorHex(cashColor), 0.88) })] : [])
+                            ...(freeCashValue > 0 ? [makeCashSlice('Cash', freeCashValue, { chartColor: CASH_CHART_COLOR })] : []),
+                            ...(cspObligatedCashValue > 0 ? [makeCashSlice('Cash*', cspObligatedCashValue, { isCspObligatedCash: true, chartColor: shadeHex(CASH_CHART_COLOR, 0.88) })] : [])
                         ]
                         : [];
                     const groupedForChart = cashPositions.length > 0
@@ -2307,12 +2274,17 @@ const firebaseConfig = {
                     const othersPercentage = smallSlices.reduce((sum, h) => sum + h.percentage, 0);
 
                     // Build chart data: large slices + "Others" if there are small slices
+                    const colors = [
+                        '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+                        '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1'
+                    ];
+                    const getChartColor = (h, i) => h.isCashGroup ? (h.chartColor || CASH_CHART_COLOR) : colors[i % colors.length];
                     const chartLabels = largeSlices.map(h => h.ticker);
                     const chartValues = largeSlices.map(h => h.value);
-                    const chartColors = largeSlices.map(h => h.chartColor || getStickyColorHex(h.color));
+                    const chartColors = largeSlices.map(getChartColor);
                     // Hide the default solid divider between free-cash and CSP-cash arcs;
                     // a small plugin draws that one separator back as a dashed line.
-                    const chartBorderColors = largeSlices.map(h => h.isCashGroup ? (h.chartColor || getStickyColorHex(h.color)) : (darkMode ? '#1f2937' : '#ffffff'));
+                    const chartBorderColors = largeSlices.map(h => h.isCashGroup ? (h.chartColor || CASH_CHART_COLOR) : (darkMode ? '#1f2937' : '#ffffff'));
                     const cspSliceIndex = largeSlices.findIndex(h => h.isCspObligatedCash);
                     const cashDividerPlugin = {
                         id: 'cashCspDashedDivider',
@@ -2379,7 +2351,7 @@ const firebaseConfig = {
                                                     : largeSlices.findIndex(ls => ls.ticker === h.ticker);
                                                 return {
                                                     text: `${h.ticker} - ${h.percentage.toFixed(1)}% - ${valueText}`,
-                                                    fillStyle: sliceIndex >= 0 ? getStickyColorHex(h.color) : '#9CA3AF',
+                                                    fillStyle: sliceIndex >= 0 ? (h.isCashPlaceholder ? CASH_CHART_COLOR : getChartColor(h, sliceIndex)) : '#9CA3AF',
                                                     strokeStyle: darkMode ? '#1f2937' : '#ffffff',
                                                     fontColor: darkMode ? '#ffffff' : '#374151',
                                                     lineWidth: 1,
