@@ -596,6 +596,7 @@ const firebaseConfig = {
             const [dragOverCategory, setDragOverCategory] = useState(null);
             const chartRef = useRef(null);
             const chartInstance = useRef(null);
+            const portfolioDataRef = useRef([]);
 
             // Compute the active ticker for data fetching (from expanded note or watch list modal)
             const activeTicker = expandedNote?.title || watchListModalTicker;
@@ -2102,11 +2103,27 @@ const firebaseConfig = {
             const totalPortfolioValue = useMemo(() =>
                 portfolioData.reduce((sum, h) => sum + h.value, 0),
             [portfolioData]);
+            portfolioDataRef.current = portfolioData;
 
             const missingPortfolioPriceCount = useMemo(
                 () => portfolioData.filter(h => !Number.isFinite(h.price) || h.price <= 0).length,
                 [portfolioData]
             );
+
+            // Stable key for chart redraws. Firestore snapshots can replace `notes` with
+            // equal data, which creates new portfolioData arrays; depending on the array
+            // identity made Chart.js destroy/recreate the pie chart and visibly flash.
+            const portfolioChartDataKey = useMemo(() =>
+                portfolioData.map(h => [
+                    h.noteId,
+                    h.ticker,
+                    h.shares,
+                    Number((h.price || 0).toFixed(4)),
+                    Number((h.value || 0).toFixed(2)),
+                    Number((h.percentage || 0).toFixed(4)),
+                    h.color
+                ].join(':')).join('|'),
+            [portfolioData]);
 
             // Snapshot of portfolio state shipped to the Ask K assistant on each turn.
             const askKPortfolio = useMemo(() => {
@@ -2166,11 +2183,14 @@ const firebaseConfig = {
 
             // Chart rendering effect - runs when tab changes, data changes, or after a short delay to ensure canvas is mounted
             useEffect(() => {
-                if (mainTab !== 'portfolio' || portfolioData.length === 0) return;
+                if (mainTab !== 'portfolio' || portfolioChartDataKey.length === 0) return;
 
                 // Small delay to ensure canvas is mounted in DOM
                 const timeoutId = setTimeout(() => {
                     if (!chartRef.current) return;
+
+                    const currentPortfolioData = portfolioDataRef.current;
+                    if (currentPortfolioData.length === 0) return;
 
                     if (chartInstance.current) {
                         chartInstance.current.destroy();
@@ -2184,8 +2204,8 @@ const firebaseConfig = {
                     // Separate large slices (>=3%) from small ones, combine small into "Others"
                     // Lower threshold = more visible slices in the pie.
                     const SLICE_THRESHOLD_PCT = 3;
-                    const largeSlices = portfolioData.filter(h => h.percentage >= SLICE_THRESHOLD_PCT);
-                    const smallSlices = portfolioData.filter(h => h.percentage < SLICE_THRESHOLD_PCT);
+                    const largeSlices = currentPortfolioData.filter(h => h.percentage >= SLICE_THRESHOLD_PCT);
+                    const smallSlices = currentPortfolioData.filter(h => h.percentage < SLICE_THRESHOLD_PCT);
                     const othersValue = smallSlices.reduce((sum, h) => sum + h.value, 0);
                     const othersPercentage = smallSlices.reduce((sum, h) => sum + h.percentage, 0);
 
@@ -2231,7 +2251,7 @@ const firebaseConfig = {
                                         pointStyle: 'circle',
                                         generateLabels: (chart) => {
                                             // Show ALL positions in legend (not just chart slices)
-                                            return portfolioData.map((h, i) => {
+                                            return currentPortfolioData.map((h, i) => {
                                                 const valueText = hidePortfolioValues ? '•••••' : `$${h.value.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
                                                 return {
                                                     text: `${h.ticker} - ${h.percentage.toFixed(1)}% - ${valueText}`,
@@ -2295,7 +2315,7 @@ const firebaseConfig = {
                     clearTimeout(timeoutId);
                     if (chartInstance.current) chartInstance.current.destroy();
                 };
-            }, [mainTab, portfolioData, darkMode, hidePortfolioValues]);
+            }, [mainTab, portfolioChartDataKey, darkMode, hidePortfolioValues]);
 
             if (!currentUser) {
                 return (
