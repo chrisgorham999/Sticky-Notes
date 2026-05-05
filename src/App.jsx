@@ -2301,11 +2301,13 @@ const firebaseConfig = {
                     const chartLabels = largeSlices.map(h => h.ticker);
                     const chartValues = largeSlices.map(h => h.value);
                     const chartColors = largeSlices.map(h => h.chartColor || getStickyColorHex(h.color));
+                    const chartBorderDash = largeSlices.map(h => h.isCspObligatedCash ? [4, 3] : []);
 
                     if (smallSlices.length > 0) {
                         chartLabels.push('Others');
                         chartValues.push(othersValue);
                         chartColors.push('#9CA3AF'); // Gray for "Others"
+                        chartBorderDash.push([]);
                     }
 
                     chartInstance.current = new Chart(chartRef.current, {
@@ -2316,7 +2318,8 @@ const firebaseConfig = {
                                 data: chartValues,
                                 backgroundColor: chartColors,
                                 borderWidth: 3,
-                                borderColor: darkMode ? '#1f2937' : '#ffffff'
+                                borderColor: darkMode ? '#1f2937' : '#ffffff',
+                                borderDash: chartBorderDash
                             }]
                         },
                         plugins: [ChartDataLabels],
@@ -2383,10 +2386,11 @@ const firebaseConfig = {
                                 },
                                 datalabels: {
                                     color: '#ffffff',
-                                    font: {
+                                    font: (ctx) => ({
                                         weight: 'bold',
-                                        size: 10
-                                    },
+                                        size: 10,
+                                        style: largeSlices[ctx.dataIndex]?.isCspObligatedCash ? 'italic' : 'normal'
+                                    }),
                                     formatter: (value, ctx) => {
                                         const label = chartLabels[ctx.dataIndex];
                                         const percentage = label === 'Others'
