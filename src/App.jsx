@@ -2284,7 +2284,7 @@ const firebaseConfig = {
                     const chartColors = largeSlices.map(getChartColor);
                     // Hide the default solid divider between free-cash and CSP-cash arcs;
                     // a small plugin draws that one separator back as a dashed line.
-                    const chartBorderColors = largeSlices.map(h => h.isCashGroup ? (h.chartColor || CASH_CHART_COLOR) : (darkMode ? '#1f2937' : '#ffffff'));
+                    const chartBorderColors = largeSlices.map(() => darkMode ? '#1f2937' : '#ffffff');
                     const cspSliceIndex = largeSlices.findIndex(h => h.isCspObligatedCash);
                     const cashDividerPlugin = {
                         id: 'cashCspDashedDivider',
@@ -2295,8 +2295,10 @@ const firebaseConfig = {
                             const { x, y, startAngle, outerRadius } = arc;
                             chart.ctx.save();
                             chart.ctx.setLineDash([4, 4]);
-                            chart.ctx.lineWidth = 2;
-                            chart.ctx.strokeStyle = darkMode ? '#e5e7eb' : '#ffffff';
+                            // Draw over the normal slice separator so the divider reads as dotted,
+                            // while keeping the cash slices at the same radius/border size as others.
+                            chart.ctx.lineWidth = 5;
+                            chart.ctx.strokeStyle = '#111827';
                             chart.ctx.beginPath();
                             chart.ctx.moveTo(x, y);
                             chart.ctx.lineTo(x + Math.cos(startAngle) * outerRadius, y + Math.sin(startAngle) * outerRadius);
