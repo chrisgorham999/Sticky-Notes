@@ -2254,7 +2254,7 @@ const firebaseConfig = {
                     const cashSlices = cashPositions.length > 0
                         ? [
                             ...(freeCashValue > 0 ? [makeCashSlice('Cash', freeCashValue, { chartColor: CASH_CHART_COLOR })] : []),
-                            ...(cspObligatedCashValue > 0 ? [makeCashSlice('Cash*', cspObligatedCashValue, { isCspObligatedCash: true, chartColor: shadeHex(CASH_CHART_COLOR, 0.88) })] : [])
+                            ...(cspObligatedCashValue > 0 ? [makeCashSlice('CSP Obligations', cspObligatedCashValue, { isCspObligatedCash: true, chartColor: shadeHex(CASH_CHART_COLOR, 0.88) })] : [])
                         ]
                         : [];
                     const groupedForChart = cashPositions.length > 0
