@@ -203,6 +203,15 @@ const firebaseConfig = {
             'bg-gray-400': '#9ca3af'
         };
         const getStickyColorHex = (colorClass, fallback = '#9CA3AF') => STICKY_COLOR_HEX[colorClass] || fallback;
+        const shadeHex = (hex, factor = 0.88) => {
+            const clean = String(hex || '').replace('#', '');
+            if (clean.length !== 6) return hex;
+            const n = parseInt(clean, 16);
+            const r = Math.max(0, Math.min(255, Math.round(((n >> 16) & 255) * factor)));
+            const g = Math.max(0, Math.min(255, Math.round(((n >> 8) & 255) * factor)));
+            const b = Math.max(0, Math.min(255, Math.round((n & 255) * factor)));
+            return `#${[r, g, b].map(v => v.toString(16).padStart(2, '0')).join('')}`;
+        };
         const MIN_CATEGORIES = 1;
         const MAX_CATEGORIES = 10;
 
@@ -2278,7 +2287,7 @@ const firebaseConfig = {
                     const cashSlices = cashPositions.length > 0
                         ? [
                             ...(freeCashValue > 0 ? [makeCashSlice('Cash', freeCashValue)] : []),
-                            ...(cspObligatedCashValue > 0 ? [makeCashSlice('Cash*', cspObligatedCashValue, { isCspObligatedCash: true, chartColor: '#166534' })] : [])
+                            ...(cspObligatedCashValue > 0 ? [makeCashSlice('Cash*', cspObligatedCashValue, { isCspObligatedCash: true, chartColor: shadeHex(getStickyColorHex(cashColor), 0.88) })] : [])
                         ]
                         : [];
                     const groupedForChart = cashPositions.length > 0
@@ -2301,13 +2310,34 @@ const firebaseConfig = {
                     const chartLabels = largeSlices.map(h => h.ticker);
                     const chartValues = largeSlices.map(h => h.value);
                     const chartColors = largeSlices.map(h => h.chartColor || getStickyColorHex(h.color));
-                    const chartBorderDash = largeSlices.map(h => h.isCspObligatedCash ? [4, 3] : []);
+                    // Hide the default solid divider between free-cash and CSP-cash arcs;
+                    // a small plugin draws that one separator back as a dashed line.
+                    const chartBorderColors = largeSlices.map(h => h.isCashGroup ? (h.chartColor || getStickyColorHex(h.color)) : (darkMode ? '#1f2937' : '#ffffff'));
+                    const cspSliceIndex = largeSlices.findIndex(h => h.isCspObligatedCash);
+                    const cashDividerPlugin = {
+                        id: 'cashCspDashedDivider',
+                        afterDatasetsDraw: (chart) => {
+                            if (cspSliceIndex < 0) return;
+                            const arc = chart.getDatasetMeta(0)?.data?.[cspSliceIndex];
+                            if (!arc) return;
+                            const { x, y, startAngle, outerRadius } = arc;
+                            chart.ctx.save();
+                            chart.ctx.setLineDash([4, 4]);
+                            chart.ctx.lineWidth = 2;
+                            chart.ctx.strokeStyle = darkMode ? '#e5e7eb' : '#ffffff';
+                            chart.ctx.beginPath();
+                            chart.ctx.moveTo(x, y);
+                            chart.ctx.lineTo(x + Math.cos(startAngle) * outerRadius, y + Math.sin(startAngle) * outerRadius);
+                            chart.ctx.stroke();
+                            chart.ctx.restore();
+                        }
+                    };
 
                     if (smallSlices.length > 0) {
                         chartLabels.push('Others');
                         chartValues.push(othersValue);
                         chartColors.push('#9CA3AF'); // Gray for "Others"
-                        chartBorderDash.push([]);
+                        chartBorderColors.push(darkMode ? '#1f2937' : '#ffffff');
                     }
 
                     chartInstance.current = new Chart(chartRef.current, {
@@ -2318,11 +2348,10 @@ const firebaseConfig = {
                                 data: chartValues,
                                 backgroundColor: chartColors,
                                 borderWidth: 3,
-                                borderColor: darkMode ? '#1f2937' : '#ffffff',
-                                borderDash: chartBorderDash
+                                borderColor: chartBorderColors
                             }]
                         },
-                        plugins: [ChartDataLabels],
+                        plugins: [ChartDataLabels, cashDividerPlugin],
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
